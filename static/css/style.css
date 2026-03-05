@@ -14,8 +14,8 @@
 
 /* Dark Mode Variables */
 [data-bs-theme="dark"] {
-  --bg-primary: #000000;
-  --bg-secondary: #1d1e21;
+  --bg-primary: #1a1b1e;
+  --bg-secondary: #25262b;
   --text-primary: #f1f2f6;
   --text-secondary: #adb5bd;
   --primary: #3354f4;

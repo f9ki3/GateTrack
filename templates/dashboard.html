@@ -31,22 +31,40 @@
   }
 </style>
 {% endblock %} {% block content %}
-<div class="container-fluid py-4">
-  <!-- Welcome Section -->
+<div class="container py-4">
+  <!-- Date and Time Section -->
   <div class="row mb-4">
     <div class="col-12">
-      <h2 class="fw-bold"><i class="bi bi-speedometer2 me-2"></i>Dashboard</h2>
-      <p class="text-muted">Welcome back, {{ current_user.username }}!</p>
+      <h2 class="fw-bold" id="currentDateTime">
+        <script>
+          function updateDateTime() {
+            const now = new Date();
+            const options = {
+              weekday: "long",
+              year: "numeric",
+              month: "long",
+              day: "numeric",
+              hour: "2-digit",
+              minute: "2-digit",
+              second: "2-digit",
+            };
+            document.getElementById("currentDateTime").textContent =
+              now.toLocaleDateString("en-US", options);
+          }
+          updateDateTime();
+          setInterval(updateDateTime, 1000);
+        </script>
+      </h2>
     </div>
   </div>
 
   <!-- Stats Cards -->
   <div class="row g-4 mb-4">
     <div class="col-md-4">
-      <div class="stats-card bg-primary text-white">
+      <div class="stats-card">
         <div class="d-flex justify-content-between align-items-center">
           <div>
-            <h6 class="text-white-50 mb-2">Total Users</h6>
+            <h6 class="text-muted mb-2">Total Users</h6>
             <h2 class="mb-0">{{ users|length }}</h2>
           </div>
           <div class="stats-icon">
@@ -56,16 +74,10 @@
       </div>
     </div>
     <div class="col-md-4">
-      <div
-        class="stats-card"
-        style="
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-          color: white;
-        "
-      >
+      <div class="stats-card">
         <div class="d-flex justify-content-between align-items-center">
           <div>
-            <h6 class="text-white-50 mb-2">Total Records</h6>
+            <h6 class="text-muted mb-2">Total Records</h6>
             <h2 class="mb-0">{{ attendance|length }}</h2>
           </div>
           <div class="stats-icon">
@@ -75,16 +87,10 @@
       </div>
     </div>
     <div class="col-md-4">
-      <div
-        class="stats-card"
-        style="
-          background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-          color: white;
-        "
-      >
+      <div class="stats-card">
         <div class="d-flex justify-content-between align-items-center">
           <div>
-            <h6 class="text-white-50 mb-2">Admins</h6>
+            <h6 class="text-muted mb-2">Admins</h6>
             <h2 class="mb-0">
               {{ users|selectattr('role', 'equalto', 'super_admin')|list|length
               }}
@@ -103,7 +109,7 @@
     <!-- Users Table -->
     <div class="col-lg-6">
       <div class="card table-card">
-        <div class="card-header bg-primary text-white">
+        <div class="card-header">
           <h5 class="mb-0"><i class="bi bi-people me-2"></i>Users</h5>
         </div>
         <div class="card-body p-0">
@@ -123,7 +129,7 @@
                   <td>{{ user.id }}</td>
                   <td>
                     <div class="d-flex align-items-center">
-                      <div class="user-avatar bg-primary text-white me-2">
+                      <div class="user-avatar me-2">
                         {{ user.username[0]|upper }}
                       </div>
                       {{ user.username }}
@@ -131,11 +137,7 @@
                   </td>
                   <td>{{ user.email }}</td>
                   <td>
-                    <span
-                      class="badge {% if user.role == 'super_admin' %}bg-danger{% elif user.role == 'teacher' %}bg-warning{% else %}bg-secondary{% endif %}"
-                    >
-                      {{ user.role }}
-                    </span>
+                    <span class="badge"> {{ user.role }} </span>
                   </td>
                 </tr>
                 {% else %}
@@ -155,13 +157,7 @@
     <!-- Attendance Table -->
     <div class="col-lg-6">
       <div class="card table-card">
-        <div
-          class="card-header"
-          style="
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-          "
-        >
+        <div class="card-header">
           <h5 class="mb-0">
             <i class="bi bi-clipboard-data me-2"></i>Attendance Records
           </h5>
@@ -183,11 +179,7 @@
                   <td>{{ att.id }}</td>
                   <td>{{ att.user.username }}</td>
                   <td>
-                    <span
-                      class="badge {% if att.type == 'present' %}bg-success{% elif att.type == 'absent' %}bg-danger{% else %}bg-warning{% endif %}"
-                    >
-                      {{ att.type }}
-                    </span>
+                    <span class="badge"> {{ att.type }} </span>
                   </td>
                   <td>
                     {{ att.time.strftime('%Y-%m-%d %H:%M') if att.time else '-'
