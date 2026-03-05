@@ -1,0 +1,212 @@
+{% extends "base.html" %} {% block title %}Dashboard - GateTrack{% endblock %}
+{% block extra_css %}
+<style>
+  .stats-card {
+    border-radius: 12px;
+    padding: 20px;
+    transition:
+      transform 0.2s,
+      box-shadow 0.2s;
+  }
+  .stats-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  }
+  .stats-icon {
+    font-size: 2.5rem;
+    opacity: 0.8;
+  }
+  .table-card {
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .user-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+  }
+</style>
+{% endblock %} {% block content %}
+<div class="container-fluid py-4">
+  <!-- Welcome Section -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <h2 class="fw-bold"><i class="bi bi-speedometer2 me-2"></i>Dashboard</h2>
+      <p class="text-muted">Welcome back, {{ current_user.username }}!</p>
+    </div>
+  </div>
+
+  <!-- Stats Cards -->
+  <div class="row g-4 mb-4">
+    <div class="col-md-4">
+      <div class="stats-card bg-primary text-white">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <h6 class="text-white-50 mb-2">Total Users</h6>
+            <h2 class="mb-0">{{ users|length }}</h2>
+          </div>
+          <div class="stats-icon">
+            <i class="bi bi-people"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div
+        class="stats-card"
+        style="
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          color: white;
+        "
+      >
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <h6 class="text-white-50 mb-2">Total Records</h6>
+            <h2 class="mb-0">{{ attendance|length }}</h2>
+          </div>
+          <div class="stats-icon">
+            <i class="bi bi-clipboard-data"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div
+        class="stats-card"
+        style="
+          background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+          color: white;
+        "
+      >
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <h6 class="text-white-50 mb-2">Admins</h6>
+            <h2 class="mb-0">
+              {{ users|selectattr('role', 'equalto', 'super_admin')|list|length
+              }}
+            </h2>
+          </div>
+          <div class="stats-icon">
+            <i class="bi bi-shield-check"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tables Section -->
+  <div class="row g-4">
+    <!-- Users Table -->
+    <div class="col-lg-6">
+      <div class="card table-card">
+        <div class="card-header bg-primary text-white">
+          <h5 class="mb-0"><i class="bi bi-people me-2"></i>Users</h5>
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-hover mb-0">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Username</th>
+                  <th>Email</th>
+                  <th>Role</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for user in users %}
+                <tr>
+                  <td>{{ user.id }}</td>
+                  <td>
+                    <div class="d-flex align-items-center">
+                      <div class="user-avatar bg-primary text-white me-2">
+                        {{ user.username[0]|upper }}
+                      </div>
+                      {{ user.username }}
+                    </div>
+                  </td>
+                  <td>{{ user.email }}</td>
+                  <td>
+                    <span
+                      class="badge {% if user.role == 'super_admin' %}bg-danger{% elif user.role == 'teacher' %}bg-warning{% else %}bg-secondary{% endif %}"
+                    >
+                      {{ user.role }}
+                    </span>
+                  </td>
+                </tr>
+                {% else %}
+                <tr>
+                  <td colspan="4" class="text-center text-muted py-4">
+                    No users found
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Attendance Table -->
+    <div class="col-lg-6">
+      <div class="card table-card">
+        <div
+          class="card-header"
+          style="
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+          "
+        >
+          <h5 class="mb-0">
+            <i class="bi bi-clipboard-data me-2"></i>Attendance Records
+          </h5>
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-hover mb-0">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>User</th>
+                  <th>Type</th>
+                  <th>Time</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for att in attendance %}
+                <tr>
+                  <td>{{ att.id }}</td>
+                  <td>{{ att.user.username }}</td>
+                  <td>
+                    <span
+                      class="badge {% if att.type == 'present' %}bg-success{% elif att.type == 'absent' %}bg-danger{% else %}bg-warning{% endif %}"
+                    >
+                      {{ att.type }}
+                    </span>
+                  </td>
+                  <td>
+                    {{ att.time.strftime('%Y-%m-%d %H:%M') if att.time else '-'
+                    }}
+                  </td>
+                </tr>
+                {% else %}
+                <tr>
+                  <td colspan="4" class="text-center text-muted py-4">
+                    No attendance records found
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
