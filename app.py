@@ -1,6 +1,6 @@
 from flask import Flask, request, jsonify, render_template, redirect, url_for, flash
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import os
 
@@ -326,10 +326,26 @@ def logout():
 @app.route('/dashboard')
 @login_required
 def dashboard():
-    """Admin dashboard"""
+    """Admin dashboard with today's attendance"""
     users = User.query.all()
-    attendance = Attendance.query.all()
+    # Get today's attendance only
+    today = datetime.now().date()
+    today_start = datetime.combine(today, datetime.min.time())
+    today_end = datetime.combine(today, datetime.max.time())
+    attendance = Attendance.query.filter(
+        Attendance.time >= today_start,
+        Attendance.time <= today_end
+    ).all()
     return render_template('dashboard.html', users=users, attendance=attendance)
+
+
+@app.route('/attendance-records')
+@login_required
+def attendance_page():
+    """Attendance page with all records"""
+    users = User.query.all()
+    attendance = Attendance.query.order_by(Attendance.time.desc()).all()
+    return render_template('attendance.html', users=users, attendance=attendance)
 
 
 # ==================== INITIALIZATION ROUTES ====================
