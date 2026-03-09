@@ -25,9 +25,9 @@ def insert_user(
     email: str,
     password: Optional[str] = None,
     contact: Optional[str] = None,
-    address: Optional[str] = None,
     gender: Optional[str] = None,
-    role: str = 'student'
+    role: str = 'student',
+    rfid: Optional[str] = None
 ) -> int:
     """Insert a single user into the database. Returns the user ID."""
     conn = get_connection()
@@ -36,9 +36,9 @@ def insert_user(
     created_at = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     
     cursor.execute('''
-        INSERT INTO users (username, email, password, contact, address, gender, role, created_at)
+        INSERT INTO users (username, email, password, contact, gender, role, rfid, created_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    ''', (username, email, password, contact, address, gender, role, created_at))
+    ''', (username, email, password, contact, gender, role, rfid, created_at))
     
     conn.commit()
     user_id = cursor.lastrowid
@@ -58,16 +58,16 @@ def insert_multiple_users(users_data: list[dict]) -> list[int]:
     
     for user_data in users_data:
         cursor.execute('''
-            INSERT INTO users (username, email, password, contact, address, gender, role, created_at)
+            INSERT INTO users (username, email, password, contact, gender, role, rfid, created_at)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         ''', (
             user_data.get('username'),
             user_data.get('email'),
             user_data.get('password'),
             user_data.get('contact'),
-            user_data.get('address'),
             user_data.get('gender'),
             user_data.get('role', 'student'),
+            user_data.get('rfid'),
             created_at
         ))
         user_ids.append(cursor.lastrowid)
@@ -169,7 +169,7 @@ def update_user(user_id: int, **kwargs) -> bool:
     fields = []
     values = []
     
-    allowed_fields = ['username', 'email', 'password', 'contact', 'address', 'gender', 'role']
+    allowed_fields = ['username', 'email', 'password', 'contact', 'gender', 'role', 'rfid']
     for key, value in kwargs.items():
         if key in allowed_fields:
             fields.append(f'{key} = ?')
