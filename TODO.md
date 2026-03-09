@@ -1,12 +1,34 @@
-# TODO - Real-time Attendance Polling
+# RFID Scanner - 4 Modes Implementation
 
-## Task
+## Serial Commands:
 
-Make attendance.html realtime using polling technique - if has changes update else don't update
+| Command | Action                                          |
+| ------- | ----------------------------------------------- |
+| `1`     | Set mode: Door Only (scan RFID to open door)    |
+| `2`     | Set mode: Time In + Door + Light ON             |
+| `3`     | Set mode: Time Out + Door + Light OFF           |
+| `4`     | **EMERGENCY: Toggle door NOW (no RFID needed)** |
 
-## Steps
+## How Mode 4 Works:
 
-- [x] 1. Analyze current code in attendance.html and app.py
-- [x] 2. Update app.py - modify `/api/attendance/data` endpoint to return max_id
-- [x] 3. Update attendance.html - change JavaScript to track lastMaxId instead of lastCount
-- [x] 4. Test the implementation (linter errors are false positives from Jinja2 template syntax)
+- Press `4` in Serial Monitor → Door immediately toggles
+- First press: Opens door (stays open)
+- Second press: Closes door
+- No RFID scan needed
+
+## Example:
+
+```
+> 4
+>>> EMERGENCY: Toggling door NOW
+>>> EMERGENCY: DOOR OPEN
+
+> 4
+>>> EMERGENCY: Toggling door NOW
+>>> EMERGENCY: DOOR CLOSE
+```
+
+## Connection Error Fix:
+
+- SERVER_IP updated to: 192.168.1.100
+- Make sure Flask is running on this IP

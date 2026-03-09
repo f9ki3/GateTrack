@@ -372,8 +372,15 @@ def log_attendance(user_id, time_in=None, time_out=None):
 def api_attendance():
     """
     API endpoint for RFID scanner to log attendance.
-    Expects JSON: {"rfid": "XXXXXXXXXX"}
-    Returns JSON with status and message.
+    Expects JSON: {"rfid": "XXXXXXXXXX", "mode": 1/2/3/4}
+    
+    Modes:
+    - Mode 1: Door Access only (just open/close door)
+    - Mode 2: Time In + Door Access + Light ON
+    - Mode 3: Time Out + Door Access + Light OFF
+    - Mode 4: Emergency Open/Close (toggle door state)
+    
+    Returns JSON with status, message, type, and mode.
     """
     try:
         data = request.get_json()
@@ -385,14 +392,35 @@ def api_attendance():
             }), 400
         
         rfid = data['rfid'].strip().upper()
+        mode = int(data.get('mode', 2))  # Default to mode 2 (Time In)
         
-        # Find user by RFID
+        # Validate mode (1, 2, 3, or 4)
+        if mode not in [1, 2, 3, 4]:
+            return jsonify({
+                'status': 'error',
+                'message': 'Invalid mode. Use 1 (door), 2 (time in), 3 (time out), or 4 (emergency)'
+            }), 400
+        
+        # Mode 4: Emergency - no RFID needed, just toggle door
+        if mode == 4:
+            return jsonify({
+                'status': 'success',
+                'message': 'Emergency Mode - Door Toggle',
+                'type': 'emergency',
+                'mode': 4,
+                'door': 'toggle',
+                'light': 'no_change',
+                'time': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            }), 200
+        
+        # Find user by RFID (for modes 1, 2, 3)
         user = get_user_by_rfid(rfid)
         
         if not user:
             return jsonify({
                 'status': 'denied',
-                'message': 'Invalid RFID - User not found'
+                'message': 'Invalid RFID - User not found',
+                'mode': mode
             }), 404
         
         # Check today's attendance
@@ -400,8 +428,26 @@ def api_attendance():
         
         now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         
-        if not attendance:
-            # No record today - log time in
+        # Handle based on mode
+        if mode == 1:
+            # Mode 1: Door Access only (no attendance logging)
+            return jsonify({
+                'status': 'success',
+                'message': 'Door Access Granted',
+                'user': {
+                    'id': user['id'],
+                    'email': user['email'],
+                    'role': user['role']
+                },
+                'type': 'door_access',
+                'mode': 1,
+                'door': 'open',
+                'light': 'no_change',
+                'time': now
+            }), 200
+            
+        elif mode == 2:
+            # Mode 2: Time In + Door Access + Light ON
             log_attendance(user['id'], time_in=now)
             
             return jsonify({
@@ -413,15 +459,42 @@ def api_attendance():
                     'role': user['role']
                 },
                 'type': 'time_in',
+                'mode': 2,
+                'door': 'open',
+                'light': 'on',
                 'time': now
             }), 200
-        
-        elif attendance['time_out'] is None or attendance['time_out'] == '':
-            # Has time in but no time out - log time out
-            log_attendance(user['id'], time_out=now)
             
-            # Get the time in value
-            time_in_val = attendance['time_in']
+        elif mode == 3:
+            # Mode 3: Time Out + Door Access + Light OFF
+            if not attendance:
+                # No time in record - cannot time out
+                return jsonify({
+                    'status': 'denied',
+                    'message': 'No Time In record found. Please time in first.',
+                    'mode': 3
+                }), 400
+            
+            if attendance['time_out'] is not None and attendance['time_out'] != '':
+                # Already has time out
+                return jsonify({
+                    'status': 'success',
+                    'message': 'Already logged out today',
+                    'user': {
+                        'id': user['id'],
+                        'email': user['email'],
+                        'role': user['role']
+                    },
+                    'type': 'already_logged',
+                    'mode': 3,
+                    'door': 'open',
+                    'light': 'off',
+                    'time_in': attendance['time_in'],
+                    'time_out': attendance['time_out']
+                }), 200
+            
+            # Log time out
+            log_attendance(user['id'], time_out=now)
             
             return jsonify({
                 'status': 'success',
@@ -432,23 +505,11 @@ def api_attendance():
                     'role': user['role']
                 },
                 'type': 'time_out',
-                'time_in': time_in_val,
-                'time_out': now
-            }), 200
-        
-        else:
-            # Already has both time in and time out today
-            return jsonify({
-                'status': 'success',
-                'message': 'Already logged today',
-                'user': {
-                    'id': user['id'],
-                    'email': user['email'],
-                    'role': user['role']
-                },
-                'type': 'already_logged',
+                'mode': 3,
+                'door': 'open',
+                'light': 'off',
                 'time_in': attendance['time_in'],
-                'time_out': attendance['time_out']
+                'time_out': now
             }), 200
             
     except Exception as e:
