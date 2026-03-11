@@ -157,6 +157,8 @@ def add_user():
         contact = request.form.get('contact', '').strip()
         gender = request.form.get('gender', '').strip()
         rfid = request.form.get('rfid', '').strip().upper()
+        first_name = request.form.get('first_name', '').strip()
+        last_name = request.form.get('last_name', '').strip()
         
         # Validation
         if not role or not email:
@@ -189,7 +191,9 @@ def add_user():
                 contact=contact if contact else None,
                 gender=gender if gender else None,
                 role=role,
-                rfid=rfid if rfid else None
+                rfid=rfid if rfid else None,
+                first_name=first_name if first_name else None,
+                last_name=last_name if last_name else None
             )
             
             flash(f'User added successfully!', 'success')

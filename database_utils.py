@@ -27,7 +27,9 @@ def insert_user(
     contact: Optional[str] = None,
     gender: Optional[str] = None,
     role: str = 'student',
-    rfid: Optional[str] = None
+    rfid: Optional[str] = None,
+    first_name: Optional[str] = None,
+    last_name: Optional[str] = None
 ) -> int:
     """Insert a single user into the database. Returns the user ID."""
     conn = get_connection()
@@ -36,9 +38,9 @@ def insert_user(
     created_at = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     
     cursor.execute('''
-        INSERT INTO users (username, email, password, contact, gender, role, rfid, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    ''', (username, email, password, contact, gender, role, rfid, created_at))
+        INSERT INTO users (username, email, password, contact, gender, role, rfid, first_name, last_name, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ''', (username, email, password, contact, gender, role, rfid, first_name, last_name, created_at))
     
     conn.commit()
     user_id = cursor.lastrowid
