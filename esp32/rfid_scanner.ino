@@ -11,7 +11,7 @@ const char* WIFI_SSID = "Lleva";
 const char* WIFI_PASSWORD = "4koSiFyke123*";
 
 // ================= Flask Server Configuration =================
-const char* SERVER_IP = "192.168.1.100";
+const char* SERVER_IP = "192.168.1.68";
 const int SERVER_PORT = 5000;
 
 // ================= RC522 (ESP32) =================
@@ -29,10 +29,20 @@ LiquidCrystal_I2C lcd(0x27, 16, 2);
 // ================= Buzzer =================
 #define BUZZER_PIN 27
 
+// ================= Relay =================
+#define RELAY_PIN 26
+
+// Most 5V relay modules are ACTIVE LOW
+#define RELAY_ON  LOW
+#define RELAY_OFF HIGH
+
 // ================= Mode Configuration =================
 int currentMode = 2;
+// 1 = Door Only
+// 2 = Time In  -> Light ON
+// 3 = Time Out -> Light OFF
 
-// ================= Simulation Variables =================
+// ================= State Variables =================
 bool doorSimulatedOpen = false;
 bool lightSimulatedOn = false;
 
@@ -81,6 +91,19 @@ void beepLong() {
   beepOnce(500);
 }
 
+// ================= Relay / Light Functions =================
+void relayLightOn() {
+  digitalWrite(RELAY_PIN, RELAY_ON);
+  lightSimulatedOn = true;
+  Serial.println(">>> RELAY LIGHT ON");
+}
+
+void relayLightOff() {
+  digitalWrite(RELAY_PIN, RELAY_OFF);
+  lightSimulatedOn = false;
+  Serial.println(">>> RELAY LIGHT OFF");
+}
+
 void connectWiFi() {
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
   lcd.clear();
@@ -124,19 +147,20 @@ void handleSerialCommands() {
     }
 
     if (command == "1" || command == "2" || command == "3") {
-      int mode = command.toInt();
-      currentMode = mode;
+      currentMode = command.toInt();
 
-      if (mode == 1) {
+      if (currentMode == 1) {
         Serial.println(">>> MODE: 1 - Door Access Only");
         showLCD("Mode: Door Only", "Ready");
-      } else if (mode == 2) {
-        Serial.println(">>> MODE: 2 - Time In + Door + Light ON");
-        showLCD("Mode: Time In", "Light ON - Ready");
-      } else if (mode == 3) {
-        Serial.println(">>> MODE: 3 - Time Out + Door + Light OFF");
-        showLCD("Mode: Time Out", "Light OFF - Ready");
+      } else if (currentMode == 2) {
+        Serial.println(">>> MODE: 2 - Time In");
+        showLCD("Mode: Time In", "Light ON");
+      } else if (currentMode == 3) {
+        Serial.println(">>> MODE: 3 - Time Out");
+        showLCD("Mode: Time Out", "Light OFF");
       }
+
+      beepOnce(80);
       delay(1500);
     }
   }
@@ -149,16 +173,6 @@ void simulateDoorOpen() {
   delay(5000);
   Serial.println(">>> SIMULATION: DOOR CLOSE");
   doorSimulatedOpen = false;
-}
-
-void simulateLightOn() {
-  Serial.println(">>> SIMULATION: LIGHT ON");
-  lightSimulatedOn = true;
-}
-
-void simulateLightOff() {
-  Serial.println(">>> SIMULATION: LIGHT OFF");
-  lightSimulatedOn = false;
 }
 
 void simulateEmergencyDoor() {
@@ -181,15 +195,23 @@ String sendAttendance(String rfid, int mode) {
 
   String url = "http://" + String(SERVER_IP) + ":" + String(SERVER_PORT) + "/api/attendance";
 
+  Serial.println("URL: " + url);
+  Serial.println("Mode: " + String(mode));
+
   http.begin(client, url);
   http.addHeader("Content-Type", "application/json");
 
   String payload = "{\"rfid\":\"" + rfid + "\", \"mode\":" + String(mode) + "}";
+  Serial.println("Payload: " + payload);
+
   int httpCode = http.POST(payload);
+  Serial.println("HTTP Code: " + String(httpCode));
 
   String response = "";
   if (httpCode > 0) {
     response = http.getString();
+  } else {
+    Serial.println("HTTP POST failed");
   }
 
   http.end();
@@ -252,6 +274,9 @@ void setup() {
   pinMode(BUZZER_PIN, OUTPUT);
   buzzerOff();
 
+  pinMode(RELAY_PIN, OUTPUT);
+  relayLightOff();   // startup default OFF
+
   Wire.begin(21, 4);
 
   lcd.init();
@@ -265,8 +290,8 @@ void setup() {
   delay(1000);
 
   if (currentMode == 1) showLCD("Mode: Door Only", "Ready");
-  else if (currentMode == 2) showLCD("Mode: Time In", "Light ON - Ready");
-  else if (currentMode == 3) showLCD("Mode: Time Out", "Light OFF - Ready");
+  else if (currentMode == 2) showLCD("Mode: Time In", "Light ON");
+  else if (currentMode == 3) showLCD("Mode: Time Out", "Light OFF");
 
   Serial.println("Scan RFID tag");
 }
@@ -277,16 +302,17 @@ void loop() {
   if (!rfid.PICC_IsNewCardPresent()) return;
   if (!rfid.PICC_ReadCardSerial()) return;
 
-  // RFID detected -> beep immediately
   beepOnce(120);
 
   String uid = getUIDString();
   Serial.print("UID: ");
   Serial.println(uid);
+  Serial.println("Current Mode: " + String(currentMode));
 
   showLCD("Card Detected", "Sending...");
 
   String response = sendAttendance(uid, currentMode);
+  Serial.println("Server Response: " + response);
 
   String status = "";
   String message = "";
@@ -296,40 +322,57 @@ void loop() {
   String light = "no_change";
 
   if (parseResponse(response, status, message, type, mode, door, light)) {
-    if (status == "success" || status == "denied") {
+    Serial.println("Status: " + status);
+    Serial.println("Message: " + message);
+    Serial.println("Door: " + door);
+    Serial.println("Light: " + light);
+
+    // Only apply action when access is successful
+    if (status == "success") {
       if (door == "open") {
         simulateDoorOpen();
-
-        if (light == "on") {
-          simulateLightOn();
-          showLCD("ACCESS GRANTED", "Light ON");
-        } else if (light == "off") {
-          simulateLightOff();
-          showLCD("ACCESS GRANTED", "Light OFF");
-        } else {
-          showLCD("ACCESS GRANTED", message);
-        }
-      } else {
-        if (status == "denied") {
-          showLCD("ACCESS DENIED", message);
-        } else {
-          showLCD(message, "");
-        }
       }
-    } else if (status == "error") {
+
+      // ===== MAIN RELAY LOGIC =====
+      if (currentMode == 2) {
+        relayLightOn();   // TIME IN -> ON
+      } else if (currentMode == 3) {
+        relayLightOff();  // TIME OUT -> OFF
+      }
+      // Mode 1 -> no relay change
+
+      beepTwiceShort();
+
+      if (currentMode == 2) {
+        showLCD("TIME IN OK", "Light ON");
+      } else if (currentMode == 3) {
+        showLCD("TIME OUT OK", "Light OFF");
+      } else {
+        showLCD("ACCESS GRANTED", message);
+      }
+    }
+    else if (status == "denied") {
+      beepLong();
+      showLCD("ACCESS DENIED", message);
+    }
+    else if (status == "error") {
+      beepLong();
       showLCD("SERVER ERROR", message);
-    } else {
+    }
+    else {
+      beepLong();
       showLCD("Status: " + status, message);
     }
   } else {
+    beepLong();
     showLCD("Connection Error", "Check Server");
   }
 
   delay(2000);
 
   if (currentMode == 1) showLCD("Mode: Door Only", "Ready");
-  else if (currentMode == 2) showLCD("Mode: Time In", "Light ON - Ready");
-  else if (currentMode == 3) showLCD("Mode: Time Out", "Light OFF - Ready");
+  else if (currentMode == 2) showLCD("Mode: Time In", "Light ON");
+  else if (currentMode == 3) showLCD("Mode: Time Out", "Light OFF");
 
   rfid.PICC_HaltA();
   rfid.PCD_StopCrypto1();
