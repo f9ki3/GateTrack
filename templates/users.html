@@ -282,15 +282,15 @@ id="searchContainer"
             <tbody>
               {% for user in users %} {% if user.id != session.get('user_id') %}
               <tr>
-                <td>
+                <td class="py-3">
                   <input
                     class="form-check-input"
                     type="checkbox"
                     value="{{ user.id }}"
                   />
                 </td>
-                <td>{{ user.id }}</td>
-                <td>
+                <td class="py-3">{{ user.id }}</td>
+                <td class="py-3">
                   <div class="d-flex align-items-center">
                     <div
                       class="avatar-circle me-2 bg-secondary"
@@ -302,20 +302,20 @@ id="searchContainer"
                     {{ user.username or '-' }}
                   </div>
                 </td>
-                <td>{{ user.first_name or '-' }}</td>
-                <td>{{ user.last_name or '-' }}</td>
-                <td>{{ user.email }}</td>
-                <td>
+                <td class="py-3">{{ user.first_name or '-' }}</td>
+                <td class="py-3">{{ user.last_name or '-' }}</td>
+                <td class="py-3">{{ user.email }}</td>
+                <td class="py-3">
                   <span
                     class="badge badge-role-{{ user.role | replace('_', '-') }} rounded-pill px-2 py-1"
                   >
                     {{ user.role | replace('_', ' ') | title }}
                   </span>
                 </td>
-                <td>{{ user.contact or '-' }}</td>
-                <td><code>{{ user.rfid or 'N/A' }}</code></td>
-<td>{{ user.created_at.strftime('%Y-%m-%d %H:%M:%S') if user.created_at else '-' }}</td>
-                <td>
+                <td class="py-3">{{ user.contact or '-' }}</td>
+                <td class="py-3"><code>{{ user.rfid or 'N/A' }}</code></td>
+                <td class="py-3">{{ user.created_at.strftime('%Y-%m-%d %H:%M:%S') if user.created_at else '-' }}</td>
+                <td class="py-3">
                   <button
                     class="btn btn-sm text-light"
                     title="Delete"
