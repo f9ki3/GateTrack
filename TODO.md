@@ -1,34 +1,22 @@
-# RFID Scanner - 4 Modes Implementation
+# GateTrack Offline Bootstrap Setup - COMPLETE
 
-## Serial Commands:
+## Completed Steps
 
-| Command | Action                                          |
-| ------- | ----------------------------------------------- |
-| `1`     | Set mode: Door Only (scan RFID to open door)    |
-| `2`     | Set mode: Time In + Door + Light ON             |
-| `3`     | Set mode: Time Out + Door + Light OFF           |
-| `4`     | **EMERGENCY: Toggle door NOW (no RFID needed)** |
+- [x] 1. Create static directories for Bootstrap and Icons
+- [x] 2. Download Bootstrap 5.3.0 CSS and JS bundle
+- [x] 3. Download Bootstrap Icons 1.11.0 CSS and font files
+- [x] 4. Update templates/nav.html CDN links to local paths
+- [x] 5. Update templates/login.html CDN links to local paths
 
-## How Mode 4 Works:
+## Test Instructions
 
-- Press `4` in Serial Monitor → Door immediately toggles
-- First press: Opens door (stays open)
-- Second press: Closes door
-- No RFID scan needed
+- [ ] 6. Test app with internet disabled (run `python app.py`, open http://localhost:5000, verify navbar dropdowns, modals, icons, styles load correctly across dashboard/users/attendance/login pages)
 
-## Example:
+**New Assets Added:**
 
-```
-> 4
->>> EMERGENCY: Toggling door NOW
->>> EMERGENCY: DOOR OPEN
+- `static/bootstrap/5.3.0/css/bootstrap.min.css`
+- `static/bootstrap/5.3.0/js/bootstrap.bundle.min.js`
+- `static/bootstrap-icons/1.11.0/font/bootstrap-icons.css`
+- `static/bootstrap-icons/1.11.0/font/fonts/*.woff*`
 
-> 4
->>> EMERGENCY: Toggling door NOW
->>> EMERGENCY: DOOR CLOSE
-```
-
-## Connection Error Fix:
-
-- SERVER_IP updated to: 192.168.1.100
-- Make sure Flask is running on this IP
+All CDN links replaced with local Flask static paths. No internet required for Bootstrap 5 + Icons.

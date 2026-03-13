@@ -23,6 +23,9 @@ block extra_css %}
     background-color: #ffc107 !important;
     color: #000 !important;
   }
+  .bg-danger {
+    background-color: #dc3545 !important;
+  }
 </style>
 {% endblock %} {% block content %}
 <!-- Welcome Section -->
@@ -37,9 +40,9 @@ block extra_css %}
   </div>
 </div>
 
-<!-- Stats Cards - 2 columns on mobile, 4 on desktop -->
+<!-- Stats Cards - 2 columns on mobile, 6 on desktop -->
 <div class="row mb-4">
-  <div class="col-6 col-md-3">
+  <div class="col-6 col-md-2">
     <div class="card stats-card">
       <div class="card-body">
         <div class="d-flex justify-content-between align-items-center">
@@ -54,7 +57,22 @@ block extra_css %}
       </div>
     </div>
   </div>
-  <div class="col-6 col-md-3">
+  <div class="col-6 col-md-2">
+    <div class="card stats-card">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <p class="text-secondary mb-1">Super Admins</p>
+            <h3 class="mb-0">{{ super_admin_count }}</h3>
+          </div>
+          <div class="stats-icon bg-danger">
+            <i class="bi bi-shield-lock fs-4"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-2">
     <div class="card stats-card">
       <div class="card-body">
         <div class="d-flex justify-content-between align-items-center">
@@ -69,22 +87,37 @@ block extra_css %}
       </div>
     </div>
   </div>
-  <div class="col-6 col-md-3">
+  <div class="col-6 col-md-2">
     <div class="card stats-card">
       <div class="card-body">
         <div class="d-flex justify-content-between align-items-center">
           <div>
-            <p class="text-secondary mb-1">Students</p>
-            <h3 class="mb-0">{{ student_count }}</h3>
+            <p class="text-secondary mb-1">Staff</p>
+            <h3 class="mb-0">{{ staff_count }}</h3>
           </div>
-          <div class="stats-icon bg-info">
-            <i class="bi bi-mortarboard fs-4"></i>
+          <div class="stats-icon bg-warning">
+            <i class="bi bi-person-gear fs-4"></i>
           </div>
         </div>
       </div>
     </div>
   </div>
-  <div class="col-6 col-md-3">
+  <div class="col-6 col-md-2">
+    <div class="card stats-card">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <p class="text-secondary mb-1">Technicians</p>
+            <h3 class="mb-0">{{ technician_count }}</h3>
+          </div>
+          <div class="stats-icon bg-primary">
+            <i class="bi bi-tools fs-4"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-2">
     <div class="card stats-card">
       <div class="card-body">
         <div class="d-flex justify-content-between align-items-center">
@@ -138,10 +171,16 @@ block extra_css %}
                   <span class="badge bg-danger">{{ user.role }}</span>
                   {% elif user.role == 'teacher' %}
                   <span class="badge bg-success">{{ user.role }}</span>
-                  {% elif user.role == 'student' %}
-                  <span class="badge bg-info">{{ user.role }}</span>
+                  {% elif user.role == 'staff' %}
+                  <span class="badge bg-warning text-dark"
+                    >{{ user.role }}</span
+                  >
+                  {% elif user.role == 'technician' %}
+                  <span class="badge bg-primary">{{ user.role }}</span>
                   {% else %}
-                  <span class="badge bg-warning">{{ user.role }}</span>
+                  <span class="badge bg-warning text-dark"
+                    >{{ user.role }}</span
+                  >
                   {% endif %}
                 </td>
                 <td><code>{{ user.rfid or 'N/A' }}</code></td>

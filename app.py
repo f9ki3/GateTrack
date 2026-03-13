@@ -87,7 +87,6 @@ def login():
             session['username'] = user['username']
             session['role'] = user['role']
             
-            flash(f'Welcome back, {user["username"] or user["email"]}!', 'success')
             return redirect(url_for('dashboard'))
         else:
             flash('Invalid email or password. Please try again.', 'error')
@@ -112,8 +111,10 @@ def logout():
 def dashboard():
     # Get user statistics
     user_count = get_user_count_by_role()
+    super_admin_count = get_user_count_by_role('super_admin')
     teacher_count = get_user_count_by_role('teacher')
-    student_count = get_user_count_by_role('student')
+    staff_count = get_user_count_by_role('staff')
+    technician_count = get_user_count_by_role('technician')
     guest_count = get_user_count_by_role('guest')
     
     # Get all users (for admin/teacher view)
@@ -122,8 +123,10 @@ def dashboard():
     return render_template(
         'dashboard.html',
         user_count=user_count,
+        super_admin_count=super_admin_count,
         teacher_count=teacher_count,
-        student_count=student_count,
+        staff_count=staff_count,
+        technician_count=technician_count,
         guest_count=guest_count,
         users=users
     )

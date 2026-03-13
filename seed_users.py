@@ -85,22 +85,7 @@ if __name__ == "__main__":
             gender=teacher['gender']
         )
     
-    # 3. Create 2 students (no username, no password - only rfid)
-    students = [
-        {'email': 'student1@gatetrack.com', 'contact': '6666666666', 'gender': 'male'},
-        {'email': 'student2@gatetrack.com', 'contact': '7777777777', 'gender': 'female'},
-    ]
-    
-    for student in students:
-        insert_user(
-            username=None,  # NULL for non-teacher/non-super_admin
-            email=student['email'],
-            password=None,  # NULL for non-teacher/non-super_admin
-            role='student',
-            rfid=generate_rfid(),
-            contact=student['contact'],
-            gender=student['gender']
-        )
+
     
     # 4. Create 2 guests (no username, no password - only rfid)
     guests = [
@@ -118,6 +103,40 @@ if __name__ == "__main__":
             contact=guest['contact'],
             gender=guest['gender']
         )
+
+    # 5. Create 2 staff (no username, no password - only rfid)
+    staff = [
+        {'email': 'staff1@gatetrack.com', 'contact': '1111111111', 'gender': 'male'},
+        {'email': 'staff2@gatetrack.com', 'contact': '2222222222', 'gender': 'female'},
+    ]
+    
+    for s in staff:
+        insert_user(
+            username=None,
+            email=s['email'],
+            password=None,
+            role='staff',
+            rfid=generate_rfid(),
+            contact=s['contact'],
+            gender=s['gender']
+        )
+
+    # 6. Create 2 technicians (no username, no password - only rfid)
+    technicians = [
+        {'email': 'tech1@gatetrack.com', 'contact': '3333333333', 'gender': 'male'},
+        {'email': 'tech2@gatetrack.com', 'contact': '4444444444', 'gender': 'female'},
+    ]
+    
+    for t in technicians:
+        insert_user(
+            username=None,
+            email=t['email'],
+            password=None,
+            role='technician',
+            rfid=generate_rfid(),
+            contact=t['contact'],
+            gender=t['gender']
+        )
     
     # Verify
     print("\n=== All Users Created ===")
@@ -128,5 +147,5 @@ if __name__ == "__main__":
         print(f"ID: {row[0]}, Username: {row[1]}, Password: {row[2]}, Role: {row[3]}, RFID: {row[4]}")
     conn.close()
     
-    print(f"\nTotal users created: 1 super_admin + 5 teachers + 2 students + 2 guests = 10 users")
+    print(f"\nTotal users created: 1 super_admin + 5 teachers + 2 students + 2 guests + 2 staff + 2 technicians = 14 users")
 

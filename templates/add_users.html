@@ -22,8 +22,10 @@ block content %}
               onchange="toggleCredentials()"
             >
               <option value="" selected disabled>Select user role...</option>
+              <option value="super_admin">Super Admin</option>
               <option value="teacher">Teacher</option>
-              <option value="student">Student</option>
+              <option value="staff">Staff</option>
+              <option value="technician">Technician</option>
               <option value="guest">Guest</option>
             </select>
             <div class="form-text">Select the role for the new user</div>
@@ -177,7 +179,11 @@ block content %}
     const usernameInput = document.getElementById("username");
     const passwordInput = document.getElementById("password");
 
-    if (roleSelect.value === "teacher") {
+    if (
+      ["super_admin", "teacher", "staff", "technician"].includes(
+        roleSelect.value,
+      )
+    ) {
       credentialsSection.style.display = "block";
       usernameInput.setAttribute("required", "required");
       passwordInput.setAttribute("required", "required");
@@ -217,13 +223,18 @@ block content %}
     .addEventListener("submit", function (event) {
       const role = document.getElementById("role").value;
 
-      if (role === "teacher") {
+      if (["super_admin", "teacher", "staff", "technician"].includes(role)) {
         const username = document.getElementById("username").value.trim();
         const password = document.getElementById("password").value.trim();
 
         if (!username || !password) {
           event.preventDefault();
-          alert("Username and Password are required for Teacher role.");
+          alert(
+            "Username and Password are required for " +
+              role.charAt(0).toUpperCase() +
+              role.slice(1) +
+              " role.",
+          );
         }
       }
     });
