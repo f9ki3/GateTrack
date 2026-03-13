@@ -162,7 +162,14 @@
             </select>
           </div>
 
-          <div style="flex: 0 0 auto; display: flex; align-items: center">
+          <div
+            style="
+              flex: 0 0 auto;
+              display: flex;
+              gap: 0.5rem;
+              align-items: center;
+            "
+          >
             <span
               id="syncIndicator"
               style="
@@ -184,6 +191,23 @@
               ></i>
               Connecting...
             </span>
+            <div class="dropdown" style="flex: 0 0 auto">
+              <a
+                class="btn btn-sm btn-outline-secondary"
+                href="{{ url_for('export_attendance_csv') }}"
+                style="
+                  padding: 0.4rem 0.8rem;
+                  font-size: 0.85rem;
+                  display: flex;
+                  align-items: center;
+                  text-decoration: none;
+                  border-radius: 20px;
+                  border-color: var(--border-color);
+                "
+              >
+                <i class="bi bi-download me-1"></i>Export CSV
+              </a>
+            </div>
           </div>
         </div>
       </div>

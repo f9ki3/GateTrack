@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
+from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify, Response
 from database_utils import insert_user, get_all_users, get_user_by_email, delete_user
 import sqlite3
 from functools import wraps
@@ -532,6 +532,74 @@ def api_attendance():
             'status': 'error',
             'message': str(e)
         }), 500
+
+# ==================== EXPORT ROUTES ====================
+
+from database_utils import export_users_csv_data, export_attendance_csv_data
+import csv
+from io import StringIO
+
+@app.route('/export/users_csv')
+@login_required
+def export_users_csv():
+    """Export filtered users to CSV."""
+    # Get filter params from query string
+    search_term = request.args.get('search', '').strip()
+    role_filter = request.args.get('role', '')
+    
+    # Export data
+    users_data = export_users_csv_data(search_term=search_term, role_filter=role_filter)
+    
+    # Create CSV in memory
+    output = StringIO()
+    writer = csv.DictWriter(output, fieldnames=[
+        'id', 'username', 'email', 'first_name', 'last_name', 
+        'contact', 'gender', 'role', 'rfid', 'created_at'
+    ])
+    writer.writeheader()
+    writer.writerows(users_data)
+    
+    # Prepare response
+    csv_content = output.getvalue()
+    output.close()
+    
+    filename = f"users_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+    
+    return Response(
+        csv_content,
+        mimetype='text/csv',
+        headers={'Content-Disposition': f'attachment; filename={filename}'}
+    )
+
+@app.route('/export/attendance_csv')
+@login_required
+def export_attendance_csv():
+    """Export attendance records to CSV."""
+    # Get filter params
+    role_filter = request.args.get('role_filter', '')
+    
+    # Export data
+    attendance_data = export_attendance_csv_data(role_filter=role_filter)
+    
+    # Create CSV
+    output = StringIO()
+    writer = csv.DictWriter(output, fieldnames=[
+        'id', 'user_id', 'email', 'username', 'first_name', 'last_name', 
+        'role', 'rfid', 'time_in', 'time_out', 'created_at'
+    ])
+    writer.writeheader()
+    writer.writerows(attendance_data)
+    
+    csv_content = output.getvalue()
+    output.close()
+    
+    filename = f"attendance_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+    
+    return Response(
+        csv_content,
+        mimetype='text/csv',
+        headers={'Content-Disposition': f'attachment; filename={filename}'}
+    )
     
 if __name__ == "__main__":
     app.run(host="0.0.0.0", debug=True)

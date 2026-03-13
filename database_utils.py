@@ -279,6 +279,91 @@ def delete_user(user_id: int) -> bool:
     return success
 
 
+# ==================== EXPORT OPERATIONS ====================
+
+def export_users_csv_data(search_term: str = '', role_filter: str = '', limit: int = 10000) -> List[dict]:
+    """Get filtered users data for CSV export. Returns list of dicts."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    # Base query parts
+    where_conditions = []
+    params = []
+    
+    if search_term:
+        where_conditions.append('(username LIKE ? OR email LIKE ? OR first_name LIKE ? OR last_name LIKE ?)')
+        pattern = f'%{search_term}%'
+        params.extend([pattern, pattern, pattern, pattern])
+    
+    if role_filter:
+        where_conditions.append('role = ?')
+        params.append(role_filter)
+    
+    where_clause = 'WHERE ' + ' AND '.join(where_conditions) if where_conditions else ''
+    
+    # Query with large limit for full export
+    query = f'''
+        SELECT id, username, email, first_name, last_name, contact, gender, role, rfid, created_at
+        FROM users 
+        {where_clause}
+        ORDER BY id
+        LIMIT ?
+    '''
+    params.append(limit)
+    cursor.execute(query, params)
+    rows = cursor.fetchall()
+    
+    # Convert to dicts with string dates
+    users = []
+    for row in rows:
+        user_dict = dict(row)
+        # Keep created_at as string for CSV
+        users.append(user_dict)
+    
+    conn.close()
+    return users
+
+
+def export_attendance_csv_data(role_filter: str = '', date_from: str = None, date_to: str = None) -> List[dict]:
+    """Get attendance data joined with users for CSV export. Returns list of dicts."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    query = '''
+        SELECT a.id, a.user_id, a.time_in, a.time_out, a.created_at,
+               u.email, u.username, u.first_name, u.last_name, u.role, u.rfid
+        FROM attendance a
+        LEFT JOIN users u ON a.user_id = u.id
+    '''
+    params = []
+    where_conditions = []
+    
+    if role_filter:
+        where_conditions.append('u.role = ?')
+        params.append(role_filter)
+    
+    if date_from:
+        where_conditions.append('date(a.created_at) >= ?')
+        params.append(date_from)
+    
+    if date_to:
+        where_conditions.append('date(a.created_at) <= ?')
+        params.append(date_to)
+    
+    if where_conditions:
+        query += ' WHERE ' + ' AND '.join(where_conditions)
+    
+    query += ' ORDER BY a.created_at DESC'
+    
+    cursor.execute(query, params)
+    rows = cursor.fetchall()
+    
+    # Convert to dicts
+    records = [dict(row) for row in rows]
+    conn.close()
+    return records
+
+
 # ==================== EXAMPLE USAGE ====================
 
 if __name__ == "__main__":

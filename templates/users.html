@@ -195,12 +195,9 @@ id="searchContainer"
               New User
             </a>
 
-            <div class="dropdown" style="position: relative; flex: 0.5">
-              <button
-                type="button"
-                data-bs-toggle="dropdown"
+              <a
+                href="{{ url_for('export_users_csv', page=page, per_page=per_page, search=search_term, role=role_filter) }}"
                 style="
-                  width: 100%;
                   display: inline-flex;
                   align-items: center;
                   justify-content: center;
@@ -214,6 +211,7 @@ id="searchContainer"
                   cursor: pointer;
                   height: 100%;
                   transition: all 0.2s;
+                  text-decoration: none;
                 "
                 onmouseover="
                   this.style.borderColor = 'var(--text-secondary)';
@@ -227,70 +225,8 @@ id="searchContainer"
                 "
               >
                 <i class="bi bi-download" style="margin-right: 0.4rem"></i
-                >Export
-              </button>
-
-              <ul
-                class="dropdown-menu dropdown-menu-end"
-                style="
-                  background-color: var(--bg-secondary);
-                  border: 1px solid var(--border-color);
-                  border-radius: 8px;
-                  box-shadow: var(--card-shadow);
-                  padding: 0.4rem;
-                  margin-top: 0.5rem;
-                "
-              >
-                <li>
-                  <a
-                    class="dropdown-item"
-                    href="#"
-                    style="
-                      color: var(--text-primary);
-                      font-size: 0.9rem;
-                      padding: 0.6rem 1rem;
-                      border-radius: 4px;
-                      display: flex;
-                      align-items: center;
-                    "
-                    onmouseover="
-                      this.style.backgroundColor = 'var(--border-color)'
-                    "
-                    onmouseout="this.style.backgroundColor = 'transparent'"
-                  >
-                    <i
-                      class="bi bi-file-earmark-spreadsheet"
-                      style="margin-right: 0.6rem"
-                    ></i
-                    >CSV
-                  </a>
-                </li>
-                <li>
-                  <a
-                    class="dropdown-item"
-                    href="#"
-                    style="
-                      color: var(--text-primary);
-                      font-size: 0.9rem;
-                      padding: 0.6rem 1rem;
-                      border-radius: 4px;
-                      display: flex;
-                      align-items: center;
-                    "
-                    onmouseover="
-                      this.style.backgroundColor = 'var(--border-color)'
-                    "
-                    onmouseout="this.style.backgroundColor = 'transparent'"
-                  >
-                    <i
-                      class="bi bi-file-earmark-pdf"
-                      style="margin-right: 0.6rem"
-                    ></i
-                    >PDF
-                  </a>
-                </li>
-              </ul>
-            </div>
+                >Export CSV
+              </a>
             <div style="flex: 1 1 140px">
             <select id="perPageSelect" name="per_page" style="
                 width: 100%;
