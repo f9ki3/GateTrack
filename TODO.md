@@ -1,22 +1,32 @@
-# GateTrack Offline Bootstrap Setup - COMPLETE
+# GateTrack Export Feature Implementation - CSV for filtered users + all attendance
 
-## Completed Steps
+## Plan Progress
 
-- [x] 1. Create static directories for Bootstrap and Icons
-- [x] 2. Download Bootstrap 5.3.0 CSS and JS bundle
-- [x] 3. Download Bootstrap Icons 1.11.0 CSS and font files
-- [x] 4. Update templates/nav.html CDN links to local paths
-- [x] 5. Update templates/login.html CDN links to local paths
+✅ **Step 1: Create TODO.md** - DONE
 
-## Test Instructions
+## Remaining Steps
 
-- [ ] 6. Test app with internet disabled (run `python app.py`, open http://localhost:5000, verify navbar dropdowns, modals, icons, styles load correctly across dashboard/users/attendance/login pages)
+**Step 2: Update database_utils.py**
 
-**New Assets Added:**
+- Add `export_users_csv_data(search_term='', role_filter='', limit=10000)`: Return filtered users as list[dict] for CSV
+- Add `export_attendance_csv_data(role_filter='', date_from=None, date_to=None)`: Return attendance records joined with users
 
-- `static/bootstrap/5.3.0/css/bootstrap.min.css`
-- `static/bootstrap/5.3.0/js/bootstrap.bundle.min.js`
-- `static/bootstrap-icons/1.11.0/font/bootstrap-icons.css`
-- `static/bootstrap-icons/1.11.0/font/fonts/*.woff*`
+**Step 3: Update app.py**
 
-All CDN links replaced with local Flask static paths. No internet required for Bootstrap 5 + Icons.
+- Add `@app.route('/export/users_csv')`: login*required, get params, csv response 'users*{date}.csv'
+- Add `@app.route('/export/attendance_csv')`: login*required, csv 'attendance*{date}.csv'
+
+**Step 4: Update templates/users.html**
+
+- Replace Export dropdown href='#' with real urls preserving filters/page/per_page/search/role
+
+**Step 5: Add to templates/attendance.html**
+
+- Add Export dropdown near search bar, similar to users.html
+
+**Step 6: Test**
+
+- `python app.py`
+- Login -> /users -> filter -> Export CSV (verify filtered data)
+- /attendance -> Export CSV (verify all records)
+- Mark COMPLETE

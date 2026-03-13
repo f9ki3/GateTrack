@@ -28,12 +28,35 @@ block extra_css %}
     background-color: #ffc107 !important;
     color: #000 !important;
   }
+  .badge-role-super-admin {
+    background-color: #3b82f6 !important;
+    color: white !important;
+    border-color: #3b82f6 !important;
+  }
+  .badge-role-teacher {
+    background-color: #10b981 !important;
+    color: white !important;
+    border-color: #10b981 !important;
+  }
+  .badge-role-staff {
+    background-color: #06b6d4 !important;
+    color: white !important;
+    border-color: #06b6d4 !important;
+  }
+  .badge-role-technician {
+    background-color: #f59e0b !important;
+    color: #1f2937 !important;
+    border-color: #f59e0b !important;
+  }
+  .badge-role-guest {
+    background-color: #6b7280 !important;
+    color: white !important;
+    border-color: #6b7280 !important;
+  }
 </style>
 {% endblock %} {% block content %}
-<!-- Header Section -->
 <div class="row">
   <div class="col-12">
-    <!-- Flash Messages -->
     {% with messages = get_flashed_messages(with_categories=true) %} {% if
     messages %} {% for category, message in messages %}
     <div
@@ -47,29 +70,87 @@ block extra_css %}
   </div>
 </div>
 
-<!-- Search and Filter -->
 <div class="row mt-2 mb-4">
   <div class="col-12">
     <div class="card">
       <div class="card-body">
-        <div class="mb-3">
-          <h2 class="mb-1">Users Management</h2>
-          <p class="text-secondary mb-0">Manage and view all system users</p>
-        </div>
-        <div class="row g-3 align-items-center">
-          <div class="col-md-4">
-            <div class="input-group">
-              <span class="input-group-text"><i class="bi bi-search"></i></span>
-              <input
-                type="text"
-                class="form-control"
-                placeholder="Search users..."
-                id="searchInput"
-              />
-            </div>
+<form method="GET" action="{{ url_for('users') }}" id="usersFilterForm" style="
+            display: flex;
+            flex-wrap: nowrap;
+            gap: 0.75rem;
+            align-items: stretch;
+            width: 100%;
+            height: 42px;
+            font-family: system-ui, -apple-system, sans-serif;
+          ">
+          <input type="hidden" name="page" id="hiddenPage" value="1">
+          <div
+id="searchContainer"
+            style="
+              flex: 1 1 250px;
+              display: flex;
+              align-items: center;
+              border: 1px solid var(--border-color);
+              border-radius: 8px;
+              background: var(--bg-secondary);
+              transition: border-color 0.2s;
+              overflow: hidden;
+            "
+          >
+            <span
+              style="
+                padding: 0 0.75rem;
+                color: var(--text-secondary);
+                display: flex;
+                align-items: center;
+              "
+            >
+              <i class="bi bi-search"></i>
+            </span>
+            <input
+              type="text"
+              name="search"
+              placeholder="Search users..."
+              id="searchInput"
+              value="{{ search_term }}"
+              style="
+                flex: 1;
+                border: none;
+                padding: 0 0.75rem;
+                font-size: 0.95rem;
+                outline: none;
+                color: var(--text-primary);
+                background: transparent;
+              "
+              onfocus="this.parentElement.style.borderColor = 'var(--primary)'"
+              onblur="this.parentElement.style.borderColor = 'var(--border-color)'"
+              onkeypress="if(event.key==='Enter') document.getElementById('usersFilterForm').submit();"
+            />
           </div>
-          <div class="col-md-3">
-            <select class="form-select" id="roleFilter">
+
+          <div style="flex: 3 1 160px">
+            <select
+              id="roleFilter"
+              name="role"
+              {{ 'selected' if role_filter == option_value else '' }}
+              style="
+                width: 100%;
+                height: 100%;
+                padding: 0.6rem 0.75rem;
+                font-size: 0.95rem;
+                border: 1px solid var(--border-color);
+                border-radius: 8px;
+                outline: none;
+                color: var(--text-primary);
+                background-color: var(--bg-secondary);
+                cursor: pointer;
+                appearance: none;
+                background-image: url(&quot;data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23adb5bd%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E&quot;);
+                background-repeat: no-repeat;
+                background-position: right 0.75rem center;
+                background-size: 1rem;
+              "
+            >
               <option value="">All Roles</option>
               <option value="super_admin">Super Admin</option>
               <option value="teacher">Teacher</option>
@@ -78,54 +159,166 @@ block extra_css %}
               <option value="guest">Guest</option>
             </select>
           </div>
-          <div class="col-md-5 d-flex justify-content-end gap-2">
-            <button class="btn btn-outline-secondary" type="button">
-              <i class="bi bi-funnel me-1"></i>Filter
-            </button>
-            <a href="{{ url_for('add_user') }}" class="btn btn-primary">
-              <i class="bi bi-plus-circle me-1"></i>Add New User
+
+          <div style="flex: 4 1 220px; display: flex; gap: 0.75rem">
+            <a
+              href="{{ url_for('add_user') }}"
+              style="
+                flex: 1;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                padding: 0.6rem 1rem;
+                font-size: 0.95rem;
+                font-weight: 500;
+                color: var(--text-secondary);
+                background: transparent;
+                border: 1px solid var(--border-color);
+                border-radius: 8px;
+                text-decoration: none;
+                white-space: nowrap;
+                cursor: pointer;
+                transition: all 0.2s;
+              "
+              onmouseover="
+                this.style.borderColor = 'var(--text-secondary)';
+                this.style.color = 'var(--text-primary)';
+                this.style.backgroundColor = 'var(--bg-secondary)';
+              "
+              onmouseout="
+                this.style.borderColor = 'var(--border-color)';
+                this.style.color = 'var(--text-secondary)';
+                this.style.backgroundColor = 'transparent';
+              "
+            >
+              <i class="bi bi-plus-circle" style="margin-right: 0.5rem"></i>Add
+              New User
             </a>
+
+            <div class="dropdown" style="position: relative; flex: 0.5">
+              <button
+                type="button"
+                data-bs-toggle="dropdown"
+                style="
+                  width: 100%;
+                  display: inline-flex;
+                  align-items: center;
+                  justify-content: center;
+                  padding: 0.6rem 1rem;
+                  font-size: 0.95rem;
+                  font-weight: 500;
+                  color: var(--text-secondary);
+                  background: transparent;
+                  border: 1px solid var(--border-color);
+                  border-radius: 8px;
+                  cursor: pointer;
+                  height: 100%;
+                  transition: all 0.2s;
+                "
+                onmouseover="
+                  this.style.borderColor = 'var(--text-secondary)';
+                  this.style.color = 'var(--text-primary)';
+                  this.style.backgroundColor = 'var(--bg-secondary)';
+                "
+                onmouseout="
+                  this.style.borderColor = 'var(--border-color)';
+                  this.style.color = 'var(--text-secondary)';
+                  this.style.backgroundColor = 'transparent';
+                "
+              >
+                <i class="bi bi-download" style="margin-right: 0.4rem"></i
+                >Export
+              </button>
+
+              <ul
+                class="dropdown-menu dropdown-menu-end"
+                style="
+                  background-color: var(--bg-secondary);
+                  border: 1px solid var(--border-color);
+                  border-radius: 8px;
+                  box-shadow: var(--card-shadow);
+                  padding: 0.4rem;
+                  margin-top: 0.5rem;
+                "
+              >
+                <li>
+                  <a
+                    class="dropdown-item"
+                    href="#"
+                    style="
+                      color: var(--text-primary);
+                      font-size: 0.9rem;
+                      padding: 0.6rem 1rem;
+                      border-radius: 4px;
+                      display: flex;
+                      align-items: center;
+                    "
+                    onmouseover="
+                      this.style.backgroundColor = 'var(--border-color)'
+                    "
+                    onmouseout="this.style.backgroundColor = 'transparent'"
+                  >
+                    <i
+                      class="bi bi-file-earmark-spreadsheet"
+                      style="margin-right: 0.6rem"
+                    ></i
+                    >CSV
+                  </a>
+                </li>
+                <li>
+                  <a
+                    class="dropdown-item"
+                    href="#"
+                    style="
+                      color: var(--text-primary);
+                      font-size: 0.9rem;
+                      padding: 0.6rem 1rem;
+                      border-radius: 4px;
+                      display: flex;
+                      align-items: center;
+                    "
+                    onmouseover="
+                      this.style.backgroundColor = 'var(--border-color)'
+                    "
+                    onmouseout="this.style.backgroundColor = 'transparent'"
+                  >
+                    <i
+                      class="bi bi-file-earmark-pdf"
+                      style="margin-right: 0.6rem"
+                    ></i
+                    >PDF
+                  </a>
+                </li>
+              </ul>
+            </div>
+            <div style="flex: 1 1 140px">
+            <select id="perPageSelect" name="per_page" style="
+                width: 100%;
+                height: 100%;
+                padding: 0.6rem 0.75rem;
+                font-size: 0.95rem;
+                border: 1px solid var(--border-color);
+                border-radius: 8px;
+                outline: none;
+                color: var(--text-primary);
+                background-color: var(--bg-secondary);
+                cursor: pointer;
+              ">
+              <option value="10" {{ 'selected' if per_page == 10 }}>10 per page</option>
+              <option value="20" {{ 'selected' if per_page == 20 }}>20 per page</option>
+              <option value="30" {{ 'selected' if per_page == 30 }}>30 per page</option>
+              <option value="100" {{ 'selected' if per_page == 100 }}>All</option>
+            </select>
           </div>
-        </div>
+        </form>
       </div>
     </div>
   </div>
 </div>
 
-<!-- Users Table -->
-<div class="row">
-  <div class="col-12">
+<div class="mt-4">
+  <div>
     <div class="card">
-      <div
-        class="card-header d-flex justify-content-between align-items-center"
-      >
-        <h5 class="mb-0">
-          <i class="bi bi-table me-2"></i>All Users
-          <span class="badge bg-secondary ms-2">{{ users|length }}</span>
-        </h5>
-        <div class="dropdown">
-          <button
-            class="btn btn-sm btn-outline-secondary dropdown-toggle"
-            type="button"
-            data-bs-toggle="dropdown"
-          >
-            <i class="bi bi-download me-1"></i>Export
-          </button>
-          <ul class="dropdown-menu dropdown-menu-end">
-            <li>
-              <a class="dropdown-item" href="#"
-                ><i class="bi bi-file-earmark-spreadsheet me-2"></i>Export
-                CSV</a
-              >
-            </li>
-            <li>
-              <a class="dropdown-item" href="#"
-                ><i class="bi bi-file-earmark-pdf me-2"></i>Export PDF</a
-              >
-            </li>
-          </ul>
-        </div>
-      </div>
       <div class="card-body">
         <div class="table-responsive">
           <table class="table table-hover" id="usersTable">
@@ -139,9 +332,9 @@ block extra_css %}
                   />
                 </th>
                 <th>ID</th>
+                <th>User</th>
                 <th>First Name</th>
                 <th>Last Name</th>
-                <th>Username</th>
                 <th>Email</th>
                 <th>Role</th>
                 <th>Contact</th>
@@ -161,12 +354,11 @@ block extra_css %}
                   />
                 </td>
                 <td>{{ user.id }}</td>
-                <td>{{ user.first_name or '-' }}</td>
-                <td>{{ user.last_name or '-' }}</td>
                 <td>
                   <div class="d-flex align-items-center">
                     <div
-                      class="avatar-circle me-2 bg-{{ 'danger' if user.role == 'super_admin' else 'success' if user.role == 'teacher' else 'warning' if user.role == 'staff' else 'primary' if user.role == 'technician' else 'info' }}"
+                      class="avatar-circle me-2 bg-secondary"
+                      style="background-color: #6c757d !important"
                     >
                       {{ user.username[0].upper() if user.username else
                       user.email[0].upper() }}
@@ -174,41 +366,31 @@ block extra_css %}
                     {{ user.username or '-' }}
                   </div>
                 </td>
+                <td>{{ user.first_name or '-' }}</td>
+                <td>{{ user.last_name or '-' }}</td>
                 <td>{{ user.email }}</td>
                 <td>
-                  {% if user.role == 'super_admin' %}
-                  <span class="badge bg-danger">{{ user.role }}</span>
-                  {% elif user.role == 'teacher' %}
-                  <span class="badge bg-success">{{ user.role }}</span>
-                  {% else %}
-                  <span class="badge bg-warning text-dark"
-                    >{{ user.role }}</span
+                  <span
+                    class="badge badge-role-{{ user.role | replace('_', '-') }} rounded-pill px-2 py-1"
                   >
-                  {% endif %}
+                    {{ user.role | replace('_', ' ') | title }}
+                  </span>
                 </td>
                 <td>{{ user.contact or '-' }}</td>
                 <td><code>{{ user.rfid or 'N/A' }}</code></td>
-                <td>{{ user.created_at }}</td>
+<td>{{ user.created_at.strftime('%Y-%m-%d %H:%M:%S') if user.created_at else '-' }}</td>
                 <td>
-                  <div class="btn-group" role="group">
-                    <button class="btn btn-sm btn-outline-primary" title="View">
-                      <i class="bi bi-eye"></i>
-                    </button>
-                    <button class="btn btn-sm btn-outline-warning" title="Edit">
-                      <i class="bi bi-pencil"></i>
-                    </button>
-                    <button
-                      class="btn btn-sm btn-outline-danger"
-                      title="Delete"
-                      data-bs-toggle="modal"
-                      data-bs-target="#deleteModal"
-                      data-user-id="{{ user.id }}"
-                      data-user-email="{{ user.email }}"
-                      data-user-role="{{ user.role }}"
-                    >
-                      <i class="bi bi-trash"></i>
-                    </button>
-                  </div>
+                  <button
+                    class="btn btn-sm text-light"
+                    title="Delete"
+                    data-bs-toggle="modal"
+                    data-bs-target="#deleteModal"
+                    data-user-id="{{ user.id }}"
+                    data-user-email="{{ user.email }}"
+                    data-user-role="{{ user.role }}"
+                  >
+                    <i class="bi bi-trash"></i>
+                  </button>
                 </td>
               </tr>
               {% endif %} {% endfor %}
@@ -218,9 +400,56 @@ block extra_css %}
       </div>
     </div>
   </div>
+
+  <div class="row mt-3">
+  <div class="col-md-6">
+    <div class="d-flex align-items-center">
+      <span class="text-muted small me-3">
+        Showing {{ ((page-1)*per_page + 1)|int }} to {{ [page*per_page, total_count]|min }} of {{ total_count }} users
+      </span>
+      <label class="text-muted small me-2">Per page:</label>
+      <select id="perPageSelectMobile" class="form-select form-select-sm d-md-none" style="width: auto;">
+        <option value="10" {{ 'selected' if per_page == 10 }} >10</option>
+        <option value="20" {{ 'selected' if per_page == 20 }} >20</option>
+        <option value="30" {{ 'selected' if per_page == 30 }} >30</option>
+      </select>
+    </div>
+  </div>
+  <div class="col-md-6">
+    {% if total_pages > 1 %}
+    <nav aria-label="Users pagination">
+      <ul class="pagination justify-content-end mb-0">
+        {% if page > 1 %}
+        <li class="page-item">
+          <a class="page-link" href="{{ url_for('users', page=page-1, per_page=per_page, search=search_term, role=role_filter) }}">Previous</a>
+        </li>
+        {% endif %}
+        
+        {% for p in range(1, total_pages + 1) %}
+        {% if p == page %}
+        <li class="page-item active"><span class="page-link">{{ p }}</span></li>
+        {% else %}
+        <li class="page-item">
+          <a class="page-link" href="{{ url_for('users', page=p, per_page=per_page, search=search_term, role=role_filter) }}">{{ p }}</a>
+        </li>
+        {% endif %}
+        {% endfor %}
+        
+        {% if page < total_pages %}
+        <li class="page-item">
+          <a class="page-link" href="{{ url_for('users', page=page+1, per_page=per_page, search=search_term, role=role_filter) }}">Next</a>
+        </li>
+        {% endif %}
+      </ul>
+    </nav>
+    {% endif %}
+  </div>
 </div>
 
-<!-- Delete Confirmation Modal -->
+  
+
+</div>
+
 <div
   class="modal fade"
   id="deleteModal"
@@ -282,34 +511,30 @@ block extra_css %}
     deleteForm.action = "/delete_user/" + userId;
   });
 
-  // Search functionality
-  document.getElementById("searchInput").addEventListener("keyup", function () {
-    const searchTerm = this.value.toLowerCase();
-    const table = document.getElementById("usersTable");
-    const rows = table
-      .getElementsByTagName("tbody")[0]
-      .getElementsByTagName("tr");
+  // Auto-submit on filter changes - resets to page 1
+  function submitFilters() {
+    document.getElementById('hiddenPage').value = '1';
+    document.getElementById('usersFilterForm').submit();
+  }
 
-    for (let i = 0; i < rows.length; i++) {
-      const rowText = rows[i].textContent.toLowerCase();
-      rows[i].style.display = rowText.includes(searchTerm) ? "" : "none";
-    }
+  // Search debounce
+  let searchTimeout;
+  document.getElementById('searchInput').addEventListener('input', function() {
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(submitFilters, 800);
+  });
+
+  // Role and per page change
+  document.getElementById('roleFilter').addEventListener('change', submitFilters);
+  document.getElementById('perPageSelect').addEventListener('change', submitFilters);
+  
+  document.getElementById("perPageSelectMobile").addEventListener("change", function() {
+    document.querySelector('#perPageSelect').value = this.value;
+    submitFilters();
   });
 
   // Role filter functionality
-  document.getElementById("roleFilter").addEventListener("change", function () {
-    const roleFilter = this.value.toLowerCase();
-    const table = document.getElementById("usersTable");
-    const rows = table
-      .getElementsByTagName("tbody")[0]
-      .getElementsByTagName("tr");
 
-    for (let i = 0; i < rows.length; i++) {
-      const rowRole = rows[i].textContent.toLowerCase();
-      rows[i].style.display =
-        !roleFilter || rowRole.includes(roleFilter) ? "" : "none";
-    }
-  });
 
   // Select all functionality
   document.getElementById("selectAll").addEventListener("change", function () {

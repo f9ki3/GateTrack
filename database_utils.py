@@ -89,7 +89,19 @@ def get_all_users() -> list[sqlite3.Row]:
     cursor = conn.cursor()
     
     cursor.execute('SELECT * FROM users')
-    users = cursor.fetchall()
+    rows = cursor.fetchall()
+    
+    # Convert Row objects to dicts to allow modification
+    from datetime import datetime
+    users = []
+    for row in rows:
+        user_dict = dict(row)
+        if user_dict['created_at']:
+            try:
+                user_dict['created_at'] = datetime.strptime(user_dict['created_at'], '%Y-%m-%d %H:%M:%S')
+            except ValueError:
+                pass
+        users.append(user_dict)
     
     conn.close()
     return users
@@ -153,11 +165,66 @@ def search_users(search_term: str) -> list[sqlite3.Row]:
         SELECT * FROM users 
         WHERE username LIKE ? 
         OR email LIKE ?
+        ORDER BY id
     ''', (pattern, pattern))
     
     users = cursor.fetchall()
     conn.close()
     return users
+
+
+def get_paginated_users(page: int = 1, per_page: int = 10, search_term: str = '', role_filter: str = '') -> tuple[list[sqlite3.Row], int]:
+    """Get paginated users with optional search and role filter. Returns (users, total_count)."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    offset = (page - 1) * per_page
+    
+    # Base query parts
+    where_conditions = []
+    params = []
+    
+    if search_term:
+        where_conditions.append('(username LIKE ? OR email LIKE ? OR first_name LIKE ? OR last_name LIKE ?)')
+        pattern = f'%{search_term}%'
+        params.extend([pattern, pattern, pattern, pattern])
+    
+    if role_filter:
+        where_conditions.append('role = ?')
+        params.append(role_filter)
+    
+    where_clause = 'WHERE ' + ' AND '.join(where_conditions) if where_conditions else ''
+    
+    # Count total
+    count_query = f'SELECT COUNT(*) FROM users {where_clause}'
+    cursor.execute(count_query, params)
+    total_count = cursor.fetchone()[0]
+    
+    # Paginated query
+    paginated_query = f'''
+        SELECT * FROM users 
+        {where_clause}
+        ORDER BY id
+        LIMIT ? OFFSET ?
+    '''
+    params.extend([per_page, offset])
+    cursor.execute(paginated_query, params)
+    rows = cursor.fetchall()
+    
+    # Convert Row objects to dicts to allow modification
+    from datetime import datetime
+    users = []
+    for row in rows:
+        user_dict = dict(row)
+        if user_dict['created_at']:
+            try:
+                user_dict['created_at'] = datetime.strptime(user_dict['created_at'], '%Y-%m-%d %H:%M:%S')
+            except ValueError:
+                pass
+        users.append(user_dict)
+    
+    conn.close()
+    return users, total_count
 
 
 # ==================== UPDATE OPERATIONS ====================
