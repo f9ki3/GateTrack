@@ -1,5 +1,6 @@
-{% extends "nav.html" %} {% block title %}Users - GateTrack{% endblock %} {%
-block extra_css %}
+{% extends "nav.html" %}
+{% block title %}Users - GateTrack{% endblock %}
+{% block extra_css %}
 <style>
   .avatar-circle {
     width: 32px;
@@ -54,19 +55,88 @@ block extra_css %}
     border-color: #6b7280 !important;
   }
 </style>
-{% endblock %} {% block content %}
+{% endblock %}
+
+{% block content %}
 <div class="row">
   <div class="col-12">
-    {% with messages = get_flashed_messages(with_categories=true) %} {% if
-    messages %} {% for category, message in messages %}
-    <div
-      class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show"
-      role="alert"
-    >
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    {% for category, message in messages %}
+    <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
       {{ message }}
       <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
-    {% endfor %} {% endif %} {% endwith %}
+    {% endfor %}
+    {% endif %}
+    {% endwith %}
+  </div>
+</div>
+
+<!-- Add New User Offcanvas - Left Side -->
+<div class="offcanvas offcanvas-start" tabindex="-1" id="addUserOffcanvas" aria-labelledby="addUserOffcanvasLabel">
+  <div class="offcanvas-header">
+    <h5 class="offcanvas-title" id="addUserOffcanvasLabel">
+      <i class="bi bi-person-plus me-2"></i>Add New User
+    </h5>
+    <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+  </div>
+  <div class="offcanvas-body p-0">
+    <form method="POST" action="{{ url_for('add_user') }}" id="addUserForm">
+      <div class="p-4">
+        <label for="role" class="form-label fw-bold">
+          User Role <span class="text-danger">*</span>
+        </label>
+        <select class="form-select mb-3" id="role" name="role" required onchange="toggleCredentials()">
+          <option value="" disabled selected>Select role...</option>
+          <option value="super_admin">Super Admin</option>
+          <option value="teacher">Teacher</option>
+          <option value="staff">Staff</option>
+          <option value="technician">Technician</option>
+          <option value="guest">Guest</option>
+        </select>
+
+        <!-- Credentials for certain roles -->
+        <div id="credentialsSection" style="display: none;" class="alert alert-info mb-3">
+          <h6>Login Credentials <span class="text-danger">*</span></h6>
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label for="username" class="form-label">Username</label>
+              <input type="text" class="form-control" id="username" name="username">
+            </div>
+            <div class="col-md-6 mb-3">
+              <label for="password" class="form-label">Password</label>
+              <div class="input-group">
+                <input type="password" class="form-control" id="password" name="password">
+                <button class="btn btn-outline-secondary" type="button" id="togglePassword">
+                  <i class="bi bi-eye" id="toggleIcon"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <label for="first_name" class="form-label">First Name</label>
+        <input type="text" class="form-control mb-3" id="first_name" name="first_name">
+
+        <label for="last_name" class="form-label">Last Name</label>
+        <input type="text" class="form-control mb-3" id="last_name" name="last_name">
+
+        <label for="email" class="form-label">Email <span class="text-danger">*</span></label>
+        <input type="email" class="form-control mb-3" id="email" name="email" required>
+
+        <label for="contact" class="form-label">Contact</label>
+        <input type="text" class="form-control mb-3" id="contact" name="contact">
+
+        <label for="rfid" class="form-label fw-bold">RFID Tag <span class="text-danger">*</span></label>
+        <input type="text" class="form-control mb-4" id="rfid" name="rfid" required placeholder="Scan or enter RFID">
+
+        <div class="d-flex gap-2">
+          <button type="button" class="btn btn-secondary flex-fill" data-bs-dismiss="offcanvas">Cancel</button>
+          <button type="submit" class="btn btn-primary flex-fill">Add User</button>
+        </div>
+      </div>
+    </form>
   </div>
 </div>
 
@@ -84,9 +154,7 @@ block extra_css %}
             font-family: system-ui, -apple-system, sans-serif;
           ">
           <input type="hidden" name="page" id="hiddenPage" value="1">
-          <div
-id="searchContainer"
-            style="
+          <div id="searchContainer" style="
               flex: 1 1 250px;
               display: flex;
               align-items: center;
@@ -95,20 +163,16 @@ id="searchContainer"
               background: var(--bg-secondary);
               transition: border-color 0.2s;
               overflow: hidden;
-            "
-          >
-            <span
-              style="
+            ">
+            <span style="
                 padding: 0 0.75rem;
                 color: var(--text-secondary);
                 display: flex;
                 align-items: center;
-              "
-            >
+              ">
               <i class="bi bi-search"></i>
             </span>
-            <input
-              type="text"
+            <input type="text"
               name="search"
               placeholder="Search users..."
               id="searchInput"
@@ -132,7 +196,6 @@ id="searchContainer"
             <select
               id="roleFilter"
               name="role"
-              {{ 'selected' if role_filter == option_value else '' }}
               style="
                 width: 100%;
                 height: 100%;
@@ -145,9 +208,9 @@ id="searchContainer"
                 background-color: var(--bg-secondary);
                 cursor: pointer;
                 appearance: none;
-                background-image: url(&quot;data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23adb5bd%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E&quot;);
+                background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23adb5bd%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E");
                 background-repeat: no-repeat;
-                background-position: right 0.75rem center;
+                background-position: right .75rem center;
                 background-size: 1rem;
               "
             >
@@ -160,16 +223,19 @@ id="searchContainer"
             </select>
           </div>
 
-          <div style="flex: 4 1 220px; display: flex; gap: 0.75rem">
-            <a
-              href="{{ url_for('add_user') }}"
+          <div style="flex: 4 1 220px; display: flex; gap: .75rem">
+            <!-- Updated Add New User button to trigger offcanvas -->
+            <button type="button"
+              class="add-user-btn"
+              data-bs-toggle="offcanvas"
+              data-bs-target="#addUserOffcanvas"
               style="
                 flex: 1;
                 display: inline-flex;
                 align-items: center;
                 justify-content: center;
-                padding: 0.6rem 1rem;
-                font-size: 0.95rem;
+                padding: .6rem 1rem;
+                font-size: .95rem;
                 font-weight: 500;
                 color: var(--text-secondary);
                 background: transparent;
@@ -178,61 +244,42 @@ id="searchContainer"
                 text-decoration: none;
                 white-space: nowrap;
                 cursor: pointer;
-                transition: all 0.2s;
+                transition: all .2s;
               "
-              onmouseover="
-                this.style.borderColor = 'var(--text-secondary)';
-                this.style.color = 'var(--text-primary)';
-                this.style.backgroundColor = 'var(--bg-secondary)';
-              "
-              onmouseout="
-                this.style.borderColor = 'var(--border-color)';
-                this.style.color = 'var(--text-secondary)';
-                this.style.backgroundColor = 'transparent';
-              "
+              onmouseover="this.style.borderColor='var(--text-secondary)';this.style.color='var(--text-primary)';this.style.backgroundColor='var(--bg-secondary)'"
+              onmouseout="this.style.borderColor='var(--border-color)';this.style.color='var(--text-secondary)';this.style.backgroundColor='transparent'"
             >
-              <i class="bi bi-plus-circle" style="margin-right: 0.5rem"></i>Add
-              New User
-            </a>
+              <i class="bi bi-plus-circle me-1"></i>Add New User
+            </button>
 
-              <a
-                href="{{ url_for('export_users_csv', page=page, per_page=per_page, search=search_term, role=role_filter) }}"
-                style="
-                  display: inline-flex;
-                  align-items: center;
-                  justify-content: center;
-                  padding: 0.6rem 1rem;
-                  font-size: 0.95rem;
-                  font-weight: 500;
-                  color: var(--text-secondary);
-                  background: transparent;
-                  border: 1px solid var(--border-color);
-                  border-radius: 8px;
-                  cursor: pointer;
-                  height: 100%;
-                  transition: all 0.2s;
-                  text-decoration: none;
-                "
-                onmouseover="
-                  this.style.borderColor = 'var(--text-secondary)';
-                  this.style.color = 'var(--text-primary)';
-                  this.style.backgroundColor = 'var(--bg-secondary)';
-                "
-                onmouseout="
-                  this.style.borderColor = 'var(--border-color)';
-                  this.style.color = 'var(--text-secondary)';
-                  this.style.backgroundColor = 'transparent';
-                "
-              >
-                <i class="bi bi-download" style="margin-right: 0.4rem"></i
-                >Export CSV
-              </a>
+            <a href="{{ url_for('export_users_csv', page=page, per_page=per_page, search=search_term, role=role_filter) }}"
+              style="
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                padding: .6rem 1rem;
+                font-size: .95rem;
+                font-weight: 500;
+                color: var(--text-secondary);
+                background: transparent;
+                border: 1px solid var(--border-color);
+                border-radius: 8px;
+                cursor: pointer;
+                height: 100%;
+                transition: all .2s;
+                text-decoration: none;
+              "
+              onmouseover="this.style.borderColor='var(--text-secondary)';this.style.color='var(--text-primary)';this.style.backgroundColor='var(--bg-secondary)'"
+              onmouseout="this.style.borderColor='var(--border-color)';this.style.color='var(--text-secondary)';this.style.backgroundColor='transparent'"
+            >
+              <i class="bi bi-download me-1"></i>Export CSV
+            </a>
             <div style="flex: 1 1 140px">
-            <select id="perPageSelect" name="per_page" style="
+              <select id="perPageSelect" name="per_page" style="
                 width: 100%;
                 height: 100%;
-                padding: 0.6rem 0.75rem;
-                font-size: 0.95rem;
+                padding: .6rem .75rem;
+                font-size: .95rem;
                 border: 1px solid var(--border-color);
                 border-radius: 8px;
                 outline: none;
@@ -240,11 +287,12 @@ id="searchContainer"
                 background-color: var(--bg-secondary);
                 cursor: pointer;
               ">
-              <option value="10" {{ 'selected' if per_page == 10 }}>10 per page</option>
-              <option value="20" {{ 'selected' if per_page == 20 }}>20 per page</option>
-              <option value="30" {{ 'selected' if per_page == 30 }}>30 per page</option>
-              <option value="100" {{ 'selected' if per_page == 100 }}>All</option>
-            </select>
+                <option value="10" {{ 'selected' if per_page == 10 }}>10 per page</option>
+                <option value="20" {{ 'selected' if per_page == 20 }}>20 per page</option>
+                <option value="30" {{ 'selected' if per_page == 30 }}>30 per page</option>
+                <option value="100" {{ 'selected' if per_page == 100 }}>All</option>
+              </select>
+            </div>
           </div>
         </form>
       </div>
@@ -253,233 +301,218 @@ id="searchContainer"
 </div>
 
 <div class="mt-4">
-  <div>
-    <div class="card">
-      <div class="card-body">
-        <div class="table-responsive">
-          <table class="table table-hover" id="usersTable">
-            <thead>
-              <tr>
-                <th>
-                  <input
-                    class="form-check-input"
-                    type="checkbox"
-                    id="selectAll"
-                  />
-                </th>
-                <th>ID</th>
-                <th>User</th>
-                <th>First Name</th>
-                <th>Last Name</th>
-                <th>Email</th>
-                <th>Role</th>
-                <th>Contact</th>
-                <th>RFID</th>
-                <th>Created</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for user in users %} {% if user.id != session.get('user_id') %}
-              <tr>
-                <td class="py-3">
-                  <input
-                    class="form-check-input"
-                    type="checkbox"
-                    value="{{ user.id }}"
-                  />
-                </td>
-                <td class="py-3">{{ user.id }}</td>
-                <td class="py-3">
-                  <div class="d-flex align-items-center">
-                    <div
-                      class="avatar-circle me-2 bg-secondary"
-                      style="background-color: #6c757d !important"
-                    >
-                      {{ user.username[0].upper() if user.username else
-                      user.email[0].upper() }}
-                    </div>
-                    {{ user.username or '-' }}
+  <div class="card">
+    <div class="card-body">
+      <div class="table-responsive">
+        <table class="table table-hover" id="usersTable">
+          <thead>
+            <tr>
+              <th><input class="form-check-input" type="checkbox" id="selectAll" /></th>
+              <th>ID</th>
+              <th>User</th>
+              <th>First Name</th>
+              <th>Last Name</th>
+              <th>Email</th>
+              <th>Role</th>
+              <th>Contact</th>
+              <th>RFID</th>
+              <th>Created</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for user in users %}
+            {% if user.id != session.get('user_id') %}
+            <tr>
+              <td class="py-3"><input class="form-check-input" type="checkbox" value="{{ user.id }}" /></td>
+              <td class="py-3">{{ user.id }}</td>
+              <td class="py-3">
+                <div class="d-flex align-items-center">
+                  <div class="avatar-circle me-2 bg-secondary" style="background-color: #6c757d !important">
+                    {{ user.username[0].upper() if user.username else user.email[0].upper() }}
                   </div>
-                </td>
-                <td class="py-3">{{ user.first_name or '-' }}</td>
-                <td class="py-3">{{ user.last_name or '-' }}</td>
-                <td class="py-3">{{ user.email }}</td>
-                <td class="py-3">
-                  <span
-                    class="badge badge-role-{{ user.role | replace('_', '-') }} rounded-pill px-2 py-1"
-                  >
-                    {{ user.role | replace('_', ' ') | title }}
-                  </span>
-                </td>
-                <td class="py-3">{{ user.contact or '-' }}</td>
-                <td class="py-3"><code>{{ user.rfid or 'N/A' }}</code></td>
-                <td class="py-3">{{ user.created_at.strftime('%Y-%m-%d %H:%M:%S') if user.created_at else '-' }}</td>
-                <td class="py-3">
-                  <button
-                    class="btn btn-sm text-light"
-                    title="Delete"
-                    data-bs-toggle="modal"
-                    data-bs-target="#deleteModal"
-                    data-user-id="{{ user.id }}"
-                    data-user-email="{{ user.email }}"
-                    data-user-role="{{ user.role }}"
-                  >
-                    <i class="bi bi-trash"></i>
-                  </button>
-                </td>
-              </tr>
-              {% endif %} {% endfor %}
-            </tbody>
-          </table>
-        </div>
+                  {{ user.username or '-' }}
+                </div>
+              </td>
+              <td class="py-3">{{ user.first_name or '-' }}</td>
+              <td class="py-3">{{ user.last_name or '-' }}</td>
+              <td class="py-3">{{ user.email }}</td>
+              <td class="py-3">
+                <span class="badge badge-role-{{ user.role | replace('_', '-') }} rounded-pill px-2 py-1">
+                  {{ user.role | replace('_', ' ') | title }}
+                </span>
+              </td>
+              <td class="py-3">{{ user.contact or '-' }}</td>
+              <td class="py-3"><code>{{ user.rfid or 'N/A' }}</code></td>
+              <td class="py-3">{{ user.created_at.strftime('%Y-%m-%d %H:%M:%S') if user.created_at else '-' }}</td>
+              <td class="py-3">
+                <button class="btn btn-sm btn-danger" title="Delete" data-bs-toggle="modal" data-bs-target="#deleteModal" data-user-id="{{ user.id }}" data-user-email="{{ user.email }}" data-user-role="{{ user.role }}">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </td>
+            </tr>
+            {% endif %}
+            {% endfor %}
+          </tbody>
+        </table>
       </div>
     </div>
   </div>
 
   <div class="row mt-3">
-  <div class="col-md-6">
-    <div class="d-flex align-items-center">
-      <span class="text-muted small me-3">
-        Showing {{ ((page-1)*per_page + 1)|int }} to {{ [page*per_page, total_count]|min }} of {{ total_count }} users
-      </span>
-      <label class="text-muted small me-2">Per page:</label>
-      <select id="perPageSelectMobile" class="form-select form-select-sm d-md-none" style="width: auto;">
-        <option value="10" {{ 'selected' if per_page == 10 }} >10</option>
-        <option value="20" {{ 'selected' if per_page == 20 }} >20</option>
-        <option value="30" {{ 'selected' if per_page == 30 }} >30</option>
-      </select>
+    <div class="col-md-6">
+      <div class="d-flex align-items-center">
+        <span class="text-muted small me-3">
+          Showing {{ ((page-1)*per_page + 1)|int }} to {{ [page*per_page, total_count]|min }} of {{ total_count }} users
+        </span>
+        <label class="text-muted small me-2">Per page:</label>
+        <select id="perPageSelectMobile" class="form-select form-select-sm d-md-none" style="width: auto;">
+          <option value="10" {{ 'selected' if per_page == 10 }}>10</option>
+          <option value="20" {{ 'selected' if per_page == 20 }}>20</option>
+          <option value="30" {{ 'selected' if per_page == 30 }}>30</option>
+        </select>
+      </div>
+    </div>
+    <div class="col-md-6">
+      {% if total_pages > 1 %}
+      <nav aria-label="Users pagination">
+        <ul class="pagination justify-content-end mb-0">
+          {% if page > 1 %}
+          <li class="page-item">
+            <a class="page-link" href="{{ url_for('users', page=page-1, per_page=per_page, search=search_term, role=role_filter) }}">Previous</a>
+          </li>
+          {% endif %}
+          
+          {% for p in range(1, total_pages + 1) %}
+          {% if p == page %}
+          <li class="page-item active"><span class="page-link">{{ p }}</span></li>
+          {% else %}
+          <li class="page-item">
+            <a class="page-link" href="{{ url_for('users', page=p, per_page=per_page, search=search_term, role=role_filter) }}">{{ p }}</a>
+          </li>
+          {% endif %}
+          {% endfor %}
+          
+          {% if page < total_pages %}
+          <li class="page-item">
+            <a class="page-link" href="{{ url_for('users', page=page+1, per_page=per_page, search=search_term, role=role_filter) }}">Next</a>
+          </li>
+          {% endif %}
+        </ul>
+      </nav>
+      {% endif %}
     </div>
   </div>
-  <div class="col-md-6">
-    {% if total_pages > 1 %}
-    <nav aria-label="Users pagination">
-      <ul class="pagination justify-content-end mb-0">
-        {% if page > 1 %}
-        <li class="page-item">
-          <a class="page-link" href="{{ url_for('users', page=page-1, per_page=per_page, search=search_term, role=role_filter) }}">Previous</a>
-        </li>
-        {% endif %}
-        
-        {% for p in range(1, total_pages + 1) %}
-        {% if p == page %}
-        <li class="page-item active"><span class="page-link">{{ p }}</span></li>
-        {% else %}
-        <li class="page-item">
-          <a class="page-link" href="{{ url_for('users', page=p, per_page=per_page, search=search_term, role=role_filter) }}">{{ p }}</a>
-        </li>
-        {% endif %}
-        {% endfor %}
-        
-        {% if page < total_pages %}
-        <li class="page-item">
-          <a class="page-link" href="{{ url_for('users', page=page+1, per_page=per_page, search=search_term, role=role_filter) }}">Next</a>
-        </li>
-        {% endif %}
-      </ul>
-    </nav>
-    {% endif %}
-  </div>
 </div>
 
-  
-
-</div>
-
-<div
-  class="modal fade"
-  id="deleteModal"
-  tabindex="-1"
-  aria-labelledby="deleteModalLabel"
-  aria-hidden="true"
->
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
   <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title text-danger" id="deleteModalLabel">
           <i class="bi bi-exclamation-triangle me-2"></i>Confirm Delete
         </h5>
-        <button
-          type="button"
-          class="btn-close"
-          data-bs-dismiss="modal"
-          aria-label="Close"
-        ></button>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">
         <p>Are you sure you want to delete this user?</p>
         <div class="alert alert-secondary">
-          <strong>User ID:</strong> <span id="deleteUserId"></span><br />
-          <strong>Email:</strong> <span id="deleteUserEmail"></span><br />
+          <strong>ID:</strong> <span id="deleteUserId"></span><br>
+          <strong>Email:</strong> <span id="deleteUserEmail"></span><br>
           <strong>Role:</strong> <span id="deleteUserRole"></span>
         </div>
-        <p class="text-danger mb-0">This action cannot be undone!</p>
+        <p class="text-danger small">This action cannot be undone!</p>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-          Cancel
-        </button>
-        <form id="deleteForm" method="POST" action="">
-          <button type="submit" class="btn btn-danger">
-            <i class="bi bi-trash me-1"></i>Delete User
-          </button>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <form id="deleteForm" method="POST">
+          <button type="submit" class="btn btn-danger">Delete User</button>
         </form>
       </div>
     </div>
   </div>
 </div>
-{% endblock %} {% block scripts %}
+{% endblock %}
+
+{% block scripts %}
 <script>
-  // Delete Modal - Populate data
-  const deleteModal = document.getElementById("deleteModal");
-  deleteModal.addEventListener("show.bs.modal", function (event) {
-    const button = event.relatedTarget;
-    const userId = button.getAttribute("data-user-id");
-    const userEmail = button.getAttribute("data-user-email");
-    const userRole = button.getAttribute("data-user-role");
+// Filter functionality
+function submitFilters() {
+  document.getElementById('hiddenPage').value = '1';
+  document.getElementById('usersFilterForm').submit();
+}
 
-    document.getElementById("deleteUserId").textContent = userId;
-    document.getElementById("deleteUserEmail").textContent = userEmail;
-    document.getElementById("deleteUserRole").textContent = userRole;
+let searchTimeout;
+document.getElementById('searchInput').addEventListener('input', function() {
+  clearTimeout(searchTimeout);
+  searchTimeout = setTimeout(submitFilters, 800);
+});
 
-    // Set the form action
-    const deleteForm = document.getElementById("deleteForm");
-    deleteForm.action = "/delete_user/" + userId;
-  });
+document.getElementById('roleFilter').addEventListener('change', submitFilters);
+document.getElementById('perPageSelect').addEventListener('change', submitFilters);
 
-  // Auto-submit on filter changes - resets to page 1
-  function submitFilters() {
-    document.getElementById('hiddenPage').value = '1';
-    document.getElementById('usersFilterForm').submit();
-  }
+document.getElementById('perPageSelectMobile')?.addEventListener('change', function() {
+  document.getElementById('perPageSelect').value = this.value;
+  submitFilters();
+});
 
-  // Search debounce
-  let searchTimeout;
-  document.getElementById('searchInput').addEventListener('input', function() {
-    clearTimeout(searchTimeout);
-    searchTimeout = setTimeout(submitFilters, 800);
-  });
+// Select all checkboxes
+document.getElementById('selectAll').addEventListener('change', function() {
+  document.querySelectorAll('#usersTable tbody input[type="checkbox"]').forEach(cb => cb.checked = this.checked);
+});
 
-  // Role and per page change
-  document.getElementById('roleFilter').addEventListener('change', submitFilters);
-  document.getElementById('perPageSelect').addEventListener('change', submitFilters);
+// Delete modal
+document.getElementById('deleteModal').addEventListener('show.bs.modal', function(e) {
+  const btn = e.relatedTarget;
+  document.getElementById('deleteUserId').textContent = btn.dataset.userId;
+  document.getElementById('deleteUserEmail').textContent = btn.dataset.userEmail;
+  document.getElementById('deleteUserRole').textContent = btn.dataset.userRole;
+  document.getElementById('deleteForm').action = `/delete_user/${btn.dataset.userId}`;
+});
+
+// Offcanvas form functionality
+function toggleCredentials() {
+  const role = document.getElementById('role').value;
+  const creds = document.getElementById('credentialsSection');
+  const username = document.getElementById('username');
+  const password = document.getElementById('password');
   
-  document.getElementById("perPageSelectMobile").addEventListener("change", function() {
-    document.querySelector('#perPageSelect').value = this.value;
-    submitFilters();
-  });
+  if (['super_admin', 'teacher', 'staff', 'technician'].includes(role)) {
+    creds.style.display = 'block';
+    username.required = true;
+    password.required = true;
+  } else {
+    creds.style.display = 'none';
+    username.required = false;
+    password.required = false;
+    username.value = '';
+    password.value = '';
+  }
+}
 
-  // Role filter functionality
+// Password toggle
+document.getElementById('togglePassword').addEventListener('click', function() {
+  const pass = document.getElementById('password');
+  const icon = document.getElementById('toggleIcon');
+  if (pass.type === 'password') {
+    pass.type = 'text';
+    icon.className = 'bi bi-eye-slash';
+  } else {
+    pass.type = 'password';
+    icon.className = 'bi bi-eye';
+  }
+});
 
-
-  // Select all functionality
-  document.getElementById("selectAll").addEventListener("change", function () {
-    const checkboxes = document.querySelectorAll(
-      '#usersTable tbody input[type="checkbox"]',
-    );
-    checkboxes.forEach((checkbox) => {
-      checkbox.checked = this.checked;
-    });
-  });
+// Form validation
+document.getElementById('addUserForm').addEventListener('submit', function(e) {
+  const role = document.getElementById('role').value;
+  if (['super_admin', 'teacher', 'staff', 'technician'].includes(role)) {
+    if (!document.getElementById('username').value.trim() || !document.getElementById('password').value.trim()) {
+      e.preventDefault();
+      alert('Username and password required for this role');
+    }
+  }
+});
 </script>
 {% endblock %}
