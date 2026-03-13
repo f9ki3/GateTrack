@@ -1,545 +1,443 @@
-{% extends "nav.html" %} {% block title %}Attendance - GateTrack{% endblock %}
+{% extends "nav.html" %}
+
+{% block title %}Attendance - GateTrack{% endblock %}
+
 {% block extra_css %}
 <style>
-  .avatar-circle {
-    width: 32px;
-    height: 32px;
+  /* Modern Toolbar */
+  .attendance-header {
+    background: var(--bs-card-bg);
+    border-bottom: 1px solid var(--bs-border-color-translucent);
+    padding: 1.5rem 0;
+    margin: -1.5rem -1.5rem 1.5rem;
+  }
+
+  .toolbar-grid {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 1rem;
+    align-items: end;
+  }
+
+  .search-container {
+    position: relative;
+    max-width: 400px;
+  }
+
+  .search-input-wrapper {
+    display: flex;
+    align-items: center;
+    border: 1px solid var(--bs-border-color);
+    border-radius: 10px;
+    background: var(--bs-secondary-bg-subtle);
+    transition: all 0.2s ease;
+  }
+
+  .search-input-wrapper:focus-within {
+    border-color: var(--bs-primary);
+    box-shadow: 0 0 0 0.2rem rgba(var(--bs-primary-rgb), 0.25);
+  }
+
+  .search-icon {
+    padding: 0.75rem 1rem;
+    color: var(--bs-secondary-color);
+  }
+
+  .search-input {
+    flex: 1;
+    border: none;
+    background: transparent;
+    padding: 0.75rem 1rem;
+    font-size: 0.95rem;
+  }
+
+  .clear-search {
+    padding: 0.75rem;
+    color: var(--bs-secondary-color);
+    cursor: pointer;
+    display: none;
+  }
+
+  .clear-search:hover {
+    color: var(--bs-primary);
+  }
+
+  .filter-actions {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  /* Sync Status */
+  .sync-badge {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    border: 1px solid;
+    white-space: nowrap;
+    cursor: help;
+  }
+
+.sync-live { border-color: var(--bs-success); background: rgba(var(--bs-success-rgb), 0.1); color: var(--bs-success-text-emphasis); }
+.sync-syncing { border-color: var(--bs-info); background: rgba(var(--bs-info-rgb), 0.1); color: var(--bs-info-text-emphasis); }
+  .sync-idle { border-color: var(--bs-secondary); background: var(--bs-secondary-bg); color: var(--bs-secondary-color); }
+
+  .spinner-dot { animation: pulse 1.5s infinite; }
+
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+  /* Modern Table */
+  .attendance-table .avatar {
+    width: 36px;
+    height: 36px;
     border-radius: 50%;
+    font-size: 0.875rem;
+    font-weight: 600;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: white;
-    font-weight: bold;
-    font-size: 14px;
+    text-transform: uppercase;
   }
-  .bg-danger {
-    background-color: #dc3545 !important;
+
+  .status-badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 500;
   }
-  .bg-success {
-    background-color: #28a745 !important;
-  }
-  .bg-info {
-    background-color: #17a2b8 !important;
-  }
-  .bg-primary {
-    background-color: #0d6efd !important;
-  }
-  .bg-warning {
-    background-color: #ffc107 !important;
-    color: #000 !important;
-  }
-  .badge-role-super-admin {
-    background-color: #3b82f6 !important;
-    color: white !important;
-    border-color: #3b82f6 !important;
-  }
-  .badge-role-teacher {
-    background-color: #10b981 !important;
-    color: white !important;
-    border-color: #10b981 !important;
-  }
-  .badge-role-staff {
-    background-color: #06b6d4 !important;
-    color: white !important;
-    border-color: #06b6d4 !important;
-  }
-  .badge-role-technician {
-    background-color: #f59e0b !important;
-    color: #1f2937 !important;
-    border-color: #f59e0b !important;
-  }
-  .badge-role-guest {
-    background-color: #6b7280 !important;
-    color: white !important;
-    border-color: #6b7280 !important;
-  }
-  #syncIndicator {
+
+.badge-pending { background: rgba(var(--bs-warning-rgb), 0.15); color: var(--bs-warning-text-emphasis); border: 1px solid rgba(var(--bs-warning-rgb), 0.25); }
+.badge-completed { background: rgba(var(--bs-success-rgb), 0.15); color: var(--bs-success-text-emphasis); border: 1px solid rgba(var(--bs-success-rgb), 0.25); }
+
+  .duration-badge {
+    background: var(--bs-secondary-bg);
+    color: var(--bs-secondary-color);
+    padding: 0.25rem 0.5rem;
+    border-radius: 12px;
     font-size: 0.8rem;
-    padding: 0.4em 0.8em;
   }
-  #syncIndicator .spin {
-    display: inline-block;
-    animation: spin 1s linear infinite;
+
+  /* Skeleton Loading */
+  .skeleton {
+    background: linear-gradient(90deg, var(--bs-secondary-bg) 25%, var(--bs-tertiary-bg) 50%, var(--bs-secondary-bg) 75%);
+    background-size: 200% 100%;
+    animation: loading 1.5s infinite;
   }
-  @keyframes spin {
-    100% {
-      transform: rotate(360deg);
+
+  @keyframes loading {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+
+  /* Pagination */
+  .page-info {
+    color: var(--bs-secondary-color);
+    font-size: 0.875rem;
+  }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .toolbar-grid {
+      grid-template-columns: 1fr;
+      gap: 0.75rem;
+    }
+    
+    .filter-actions {
+      justify-content: stretch;
+    }
+    
+    .filter-actions > * {
+      flex: 1;
     }
   }
-  .text-success-light {
-    color: #86efac !important;
-  }
-  .text-danger-light {
-    color: #fca5a5 !important;
-  }
-  .bg-orange {
-    background-color: #fed7aa !important;
-  }
-  #attendanceBody {
-    transition: opacity 0.15s ease-in-out;
+
+  /* Hover effects */
+  .table-hover tbody tr:hover {
+    background-color: rgba(var(--bs-emphasis-rgb), 0.05);
   }
 </style>
-{% endblock %} {% block content %}
+{% endblock %}
+
+{% block content %}
+<!-- Messages -->
 <div class="row">
   <div class="col-12">
-    <!-- Flash Messages -->
-    {% with messages = get_flashed_messages(with_categories=true) %} {% if
-    messages %} {% for category, message in messages %}
-    <div
-      class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show"
-      role="alert"
-    >
-      {{ message }}
-      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    </div>
-    {% endfor %} {% endif %} {% endwith %}
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
   </div>
 </div>
 
-<!-- Search and Filter -->
 <div class="row mt-2 mb-4">
   <div class="col-12">
     <div class="card">
       <div class="card-body">
-        <!-- <h5 class="mb-0">Attendance Records</h5>
-        <p class="text-secondary mb-4">View and manage all attendance logs</p> -->
-        <div
-          style="
-            display: flex;
-            flex-wrap: wrap;
-            gap: 1rem;
-            align-items: center;
-            width: 100%;
-            font-family:
-              system-ui,
-              -apple-system,
-              sans-serif;
-          "
-        >
-          <div
-            id="attendanceSearchContainer"
-            style="
-              flex: 4 1 240px;
-              display: flex;
-              align-items: center;
-              border: 1px solid var(--border-color);
-              border-radius: 8px;
-              background: var(--bg-secondary);
-              transition: border-color 0.2s;
-              overflow: hidden;
-            "
-          >
-            <span
-              style="
-                padding: 0.5rem 0.75rem;
-                color: var(--text-secondary);
-                display: flex;
-                align-items: center;
-              "
-            >
+        <form method="GET" action="{{ url_for('attendance') }}" id="attendanceFilterForm" style="display: flex;flex-wrap: nowrap;gap: 0.75rem;align-items: stretch;width: 100%;height: 42px;font-family: system-ui, -apple-system, sans-serif;">
+          <input type="hidden" name="page" id="hiddenPageAttendance" value="{{ page }}">
+          <div style="width: 30%;display: flex;align-items: center;border: 1px solid var(--border-color);border-radius: 8px;background: var(--bg-secondary);transition: border-color 0.2s;overflow: hidden;">
+            <span style="padding: 0 0.75rem;color: var(--text-secondary);display: flex;align-items: center;">
               <i class="bi bi-search"></i>
             </span>
-            <input
-              type="text"
-              placeholder="Search attendance..."
-              id="searchInput"
-              style="
-                width: 100%;
-                border: none;
-                padding: 0.6rem 0.75rem 0.6rem 0;
-                font-size: 0.95rem;
-                outline: none;
-                color: var(--text-primary);
-                background: transparent;
-              "
-              onfocus="this.parentElement.style.borderColor = 'var(--primary)'"
-              onblur="
-                this.parentElement.style.borderColor = 'var(--border-color)'
-              "
-            />
+            <input type="text" name="search" placeholder="Search attendance..." id="searchInput" value="{{ search_term }}" style="flex: 1;border: none;padding: 0 0.75rem;font-size: 0.95rem;outline: none;color: var(--text-primary);background: transparent;" onfocus="this.parentElement.style.borderColor = 'var(--primary)'" onblur="this.parentElement.style.borderColor = 'var(--border-color)'" onkeypress="if(event.key==='Enter') document.getElementById('attendanceFilterForm').submit();"/>
           </div>
 
-          <div style="flex: 3 1 160px">
-            <select
-              id="roleFilter"
-              style="
-                width: 100%;
-                height: 100%;
-                padding: 0.6rem 0.75rem;
-                font-size: 0.95rem;
-                border: 1px solid var(--border-color);
-                border-radius: 8px;
-                outline: none;
-                color: var(--text-primary);
-                background-color: var(--bg-secondary);
-                cursor: pointer;
-                appearance: none;
-                background-image: url(&quot;data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23adb5bd%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E&quot;);
-                background-repeat: no-repeat;
-                background-position: right 0.75rem center;
-                background-size: 1rem;
-              "
-            >
-              <option value="" style="background: var(--bg-secondary)">
-                All Roles
-              </option>
-              <option
-                value="super_admin"
-                style="background: var(--bg-secondary)"
-              >
-                Super Admin
-              </option>
-              <option value="teacher" style="background: var(--bg-secondary)">
-                Teacher
-              </option>
-              <option value="staff" style="background: var(--bg-secondary)">
-                Staff
-              </option>
-              <option
-                value="technician"
-                style="background: var(--bg-secondary)"
-              >
-                Technician
-              </option>
-              <option value="guest" style="background: var(--bg-secondary)">
-                Guest
-              </option>
-            </select>
-          </div>
-
-          <div
-            style="
-              flex: 0 0 auto;
-              display: flex;
-              gap: 0.5rem;
-              align-items: center;
-            "
-          >
-            <a
-              href="{{ url_for('export_attendance_csv', role_filter=role_filter if role_filter else '') }}"
-              style="
-                width: 100%;
-                height: 100%;
-                display: inline-flex;
-                align-items: center;
-                justify-content: center;
-                padding: 0.6rem 1rem;
-                font-size: 0.95rem;
-                font-weight: 500;
-                color: var(--text-secondary);
-                background: transparent;
-                border: 1px solid var(--border-color);
-                border-radius: 8px;
-                cursor: pointer;
-                text-decoration: none;
-                transition: all 0.2s;
-                flex: 0 0 140px;
-              "
-              onmouseover="
-                this.style.borderColor = 'var(--text-secondary)';
-                this.style.color = 'var(--text-primary)';
-                this.style.backgroundColor = 'var(--bg-secondary)';
-              "
-              onmouseout="
-                this.style.borderColor = 'var(--border-color)';
-                this.style.color = 'var(--text-secondary)';
-                this.style.backgroundColor = 'transparent';
-              "
-            >
-              <i class="bi bi-download" style="margin-right: 0.4rem"></i>Export
-              CSV
+          <div style=" display: flex; gap: 0.75rem;">
+            <a href="{{ url_for('export_attendance_csv', page=page, per_page=per_page, search=search_term) }}" style="flex: 1;display: inline-flex;align-items: center;justify-content: center;padding: 0.6rem 1rem;font-size: 0.95rem;font-weight: 500;color: var(--text-secondary);background: transparent;border: 1px solid var(--border-color);border-radius: 8px;text-decoration: none;white-space: nowrap;cursor: pointer;transition: all 0.2s;" onmouseover="this.style.borderColor = 'var(--text-secondary)';this.style.color = 'var(--text-primary)';this.style.backgroundColor = 'var(--bg-secondary)';" onmouseout="this.style.borderColor = 'var(--border-color)';this.style.color = 'var(--text-secondary)';this.style.backgroundColor = 'transparent';">
+              <i class="bi bi-download" style="margin-right: 0.5rem;"></i>Export CSV
             </a>
-
-            <span
-              id="syncIndicator"
-              style="
-                display: inline-flex;
-                align-items: center;
-                padding: 0.4rem 0.8rem;
-                font-size: 0.85rem;
-                font-weight: 500;
-                color: var(--text-secondary);
-                background: var(--bg-secondary);
-                border: 1px solid var(--border-color);
-                border-radius: 20px;
-                white-space: nowrap;
-              "
-            >
-              <i
-                class="bi bi-circle-fill me-2"
-                style="font-size: 0.5rem; color: var(--text-secondary)"
-              ></i>
-              Connecting...
-            </span>
+            <div style="flex: 1 1 120px;">
+              <select id="perPageSelectAttendance" name="per_page" style="width: 100%;height: 100%;padding: 0.6rem 0.75rem;font-size: 0.95rem;border: 1px solid var(--border-color);border-radius: 8px;outline: none;color: var(--text-primary);background-color: var(--bg-secondary);cursor: pointer;">
+                <option value="10" {{ 'selected' if per_page == 10 }} >10 per page</option>
+                <option value="20" {{ 'selected' if per_page == 20 }} >20 per page</option>
+                <option value="30" {{ 'selected' if per_page == 30 }} >30 per page</option>
+                <option value="100" {{ 'selected' if per_page == 100 }} >All</option>
+              </select>
+            </div>
+            <div style="display: flex; align-items: center; justify-content: center;">
+              <span id="syncIndicator" class="sync-indicator sync-waiting" title="Live updates every 3 seconds" style="padding: 0.45rem 0.8rem;font-size: 0.85rem;font-weight: 500;border-radius: 999px;white-space: nowrap;border: 1px solid var(--border-color);background: var(--bg-secondary);color: var(--text-secondary);">
+                <i class="bi bi-circle-fill dot"></i>
+                <span>Live</span>
+              </span>
+            </div>
           </div>
-        </div>
+        </form>
       </div>
     </div>
   </div>
 </div>
 
-<!-- Attendance Table -->
-<div class="row">
-  <div class="col-12">
-    <div class="card">
-      <div class="card-body">
-        <div class="table-responsive">
-          <table class="table table-hover" id="attendanceTable">
+
+<!-- Table -->
+<div class="card">
+  <div class="card-body p-0">
+    <div class="table-responsive">
+<table class="table table-hover" id="attendanceTable">
             <thead>
               <tr>
                 <th>ID</th>
                 <th>User</th>
-                <th>Role</th>
                 <th>Date</th>
                 <th>Time In</th>
                 <th>Time Out</th>
                 <th>Duration</th>
               </tr>
             </thead>
-            <tbody id="attendanceBody">
-              <tr>
-                <td colspan="7" class="text-center py-4">
-                  <div class="spinner-border text-secondary" role="status">
-                    <span class="visually-hidden">Loading...</span>
-                  </div>
-                  <p class="mt-2 text-secondary">
-                    Loading attendance records...
-                  </p>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
+        <tbody id="tableBody">
+          {% if records %}
+            {% for record in records %}
+            <tr>
+              <td class="py-3">{{ record.id }}</td>
+              <td class="py-3">
+                <div class="d-flex align-items-center">
+                  {{ record.username or record.email or 'Unknown' }}
+                </div>
+              </td>
+              <td class="py-3">{{ record.created_at[:10] if record.created_at else '-' }}</td>
+              <td class="py-3">
+                {% if record.time_in %}
+                  <span class="text-success-light"><i class="bi bi-arrow-right-circle me-1"></i>{{ record.time_in.split(' ')[1] }}</span>
+                {% else %}
+                  <span class="text-muted">-</span>
+                {% endif %}
+              </td>
+              <td class="py-3">
+                {% if record.time_out %}
+                  <span class="text-danger-light"><i class="bi bi-arrow-left-circle me-1"></i>{{ record.time_out.split(' ')[1] }}</span>
+                {% else %}
+                  <span class="badge badge-pending">Pending</span>
+                {% endif %}
+              </td>
+              <td class="py-3">{{ record.duration or '-' }}</td>
+            </tr>
+            {% endfor %}
+          {% else %}
+            <tr>
+              <td colspan="7" class="text-center py-5">
+                <i class="bi bi-inbox display-4 text-muted mb-3"></i>
+                <h5 class="text-muted">No attendance records found</h5>
+                <p class="text-muted mb-0">Try adjusting your search or filter above</p>
+              </td>
+            </tr>
+          {% endif %}
+        </tbody>
+      </table>
     </div>
   </div>
 </div>
 
-<!-- Store initial data in a hidden element -->
-{% if attendance_records %}
-<div id="initialData" style="display: none">
-  {{ attendance_records|tojson|safe }}
+
+<!-- Page Info & Pagination -->
+{% if total_count > 0 %}
+<div class="row mt-3">
+  <div class="col-md-6">
+    <div class="page-info">
+Showing {{ ((page-1)*per_page)+1 }} to {{ [page*per_page, total_count]|min }} 
+      of {{ "{:,}".format(total_count) }} records
+    </div>
+  </div>
+  <div class="col-md-6">
+    <nav aria-label="Attendance pagination">
+      <ul class="pagination pagination-sm justify-content-end mb-0">
+        {% if page > 1 %}
+          <li class="page-item">
+            <a class="page-link" href="?page=1{{ '&per_page='~per_page if per_page != 10 }}{{ '&search='~search_term if search_term }}{{ '&role_filter='~role_filter if role_filter }}">First</a>
+          </li>
+          <li class="page-item">
+            <a class="page-link" href="?page={{ page-1 }}{{ '&per_page='~per_page if per_page != 10 }}{{ '&search='~search_term if search_term }}{{ '&role_filter='~role_filter if role_filter }}">Prev</a>
+          </li>
+        {% endif %}
+        
+        <li class="page-item disabled">
+          <span class="page-link">{{ page }} / {{ total_pages }}</span>
+        </li>
+        
+        {% if page < total_pages %}
+          <li class="page-item">
+            <a class="page-link" href="?page={{ page+1 }}{{ '&per_page='~per_page if per_page != 10 }}{{ '&search='~search_term if search_term }}{{ '&role_filter='~role_filter if role_filter }}">Next</a>
+          </li>
+          <li class="page-item">
+            <a class="page-link" href="?page={{ total_pages }}{{ '&per_page='~per_page if per_page != 10 }}{{ '&search='~search_term if search_term }}{{ '&role_filter='~role_filter if role_filter }}">Last</a>
+          </li>
+        {% endif %}
+      </ul>
+    </nav>
+  </div>
 </div>
-{% endif %} {% endblock %} {% block scripts %}
+{% endif %}
+
+<!-- Hidden initial data for realtime -->
+{% if records %}
+<script id="initialData" type="application/json">
+{{ records|tojson|safe }}
+</script>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
 <script>
-  // Polling interval in milliseconds (3 seconds)
-  const POLL_INTERVAL = 3000;
+const POLL_INTERVAL = 3000;
+let debounceTimer;
+let isPolling = false;
+let currentFilters = {
+  search: '{{ search_term }}',
+  role: '{{ role_filter }}',
+  per_page: {{ per_page }}
+};
 
-  // Track state for change detection
-  let lastMaxId = 0;
-  let lastDataHash = "";
-  let isPolling = false;
+// Elements
+const form = document.getElementById('attendanceForm');
+const searchInput = document.getElementById('searchInput');
+const roleFilter = document.getElementById('roleFilter');
+const perPageSelect = document.getElementById('perPageSelect');
+const currentPageInput = document.getElementById('currentPage');
+const tableBody = document.getElementById('tableBody');
+const syncStatus = document.getElementById('syncStatus');
+const syncDot = document.getElementById('syncDot');
+const syncText = document.getElementById('syncText');
+const clearSearch = document.getElementById('clearSearch');
 
-  // Get initial data from hidden div element (safer than data attribute)
-  var initialRecords = [];
-  var initialDataDiv = document.getElementById("initialData");
-  if (initialDataDiv && initialDataDiv.textContent.trim()) {
-    try {
-      var parsed = JSON.parse(initialDataDiv.textContent.trim());
-      if (Array.isArray(parsed)) {
-        initialRecords = parsed;
+// Debounced search
+function debounceSearch() {
+  clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(() => {
+    currentPageInput.value = 1;
+    form.submit();
+  }, 350);
+}
+
+// Update sync status
+function updateSyncStatus(state) {
+  syncStatus.className = `sync-badge sync-${state}`;
+  syncDot.className = state === 'syncing' ? 'spinner-dot bi bi-arrow-repeat' : 'spinner-dot';
+  const statusMap = {
+    syncing: 'Syncing...',
+    live: 'Live',
+    idle: 'Ready'
+  };
+  syncStatus.className = `sync-badge sync-${state}`;
+  syncDot.className = state === 'syncing' ? 'spinner-dot bi bi-arrow-repeat' : 'spinner-dot';
+  syncText.textContent = statusMap[state] || 'Error';
+}
+
+// Form handlers
+function initHandlers() {
+  if (searchInput) {
+    searchInput.addEventListener('input', debounceSearch);
+    searchInput.addEventListener('keydown', e => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        debounceSearch();
       }
-    } catch (e) {
-      console.error("Error parsing initial records:", e);
-    }
-  }
-
-  function getBadgeClass(role) {
-    if (role === "super_admin") return "bg-danger";
-    if (role === "teacher") return "bg-success";
-    if (role === "staff") return "bg-warning text-dark";
-    if (role === "technician") return "bg-primary";
-    return "bg-warning text-dark";
-  }
-
-  function getAvatarClass(role) {
-    if (role === "super_admin") return "bg-danger";
-    if (role === "teacher") return "bg-success";
-    if (role === "staff") return "bg-warning";
-    if (role === "technician") return "bg-primary";
-    return "bg-warning";
-  }
-
-  function formatTime(datetime) {
-    if (!datetime) return null;
-    return datetime.split(" ")[1];
-  }
-
-  function formatDate(datetime) {
-    if (!datetime) return "";
-    return datetime.split(" ")[0];
-  }
-
-  // Generate hash from data to detect changes
-  function generateDataHash(data) {
-    if (!data || data.length === 0) return "empty";
-    return data
-      .map((r) => `${r.id}-${r.time_in || ""}-${r.time_out || ""}`)
-      .join("|");
-  }
-
-  function renderTable(data) {
-    const tbody = document.getElementById("attendanceBody");
-    const countBadge = document.getElementById("recordCount");
-
-    if (!data || data.length === 0) {
-      tbody.innerHTML =
-        '<tr><td colspan="7" class="text-center py-4 text-secondary">No attendance records found.</td></tr>';
-      if (countBadge) countBadge.textContent = "0";
-      return;
-    }
-
-    let html = "";
-    data.forEach((record) => {
-      const timeIn = formatTime(record.time_in);
-      const timeOut = formatTime(record.time_out);
-      const date = formatDate(record.created_at);
-      const initial = record.initial || "U";
-
-      html += `
-        <tr >
-          <td class="py-3">${record.id || "-"}</td>
-          <td class="py-3">
-            ${record.username || record.email || "Unknown"}
-          </td>
-          <td class="py-3"><span class="badge badge-role-${record.role.replace("_", "-")} rounded-pill px-2 py-1">${record.role.replace("_", " ").replace(/\b\w/g, (l) => l.toUpperCase()) || "N/A"}</span></td>
-          <td class="py-3">${date}</td>
-          <td class="py-3">${timeIn ? `<span class="text-success-light"><i class="bi bi-arrow-right-circle me-1"></i>${timeIn}</span>` : '<span class="text-muted">-</span>'}</td>
-          <td class="py-3">${timeOut ? `<span class="text-danger-light"><i class="bi bi-arrow-left-circle me-1"></i>${timeOut}</span>` : '<span class="badge bg-orange text-dark">Pending</span>'}</td>
-          <td class="py-3">${record.duration || "-"}</td>
-        </tr>
-      `;
     });
-
-    tbody.innerHTML = html;
-    if (countBadge) countBadge.textContent = data.length;
-
-    // Re-apply search filter
-    applySearchFilter();
   }
 
-  function updateSyncIndicator(status) {
-    const indicator = document.getElementById("syncIndicator");
-    if (!indicator) return;
-
-    if (status === "syncing") {
-      indicator.innerHTML =
-        '<i class="bi bi-arrow-repeat spin me-1"></i>Syncing...';
-      indicator.className = "badge bg-info";
-    } else if (status === "synced") {
-      indicator.innerHTML = '<i class="bi bi-check-circle me-1"></i>Live';
-      indicator.className = "badge bg-success";
-    } else if (status === "waiting") {
-      indicator.innerHTML = '<i class="bi bi-clock me-1"></i>Waiting...';
-      indicator.className = "badge bg-secondary";
-    } else {
-      indicator.innerHTML =
-        '<i class="bi bi-exclamation-circle me-1"></i>Error';
-      indicator.className = "badge bg-danger";
-    }
-  }
-
-  async function pollAttendance() {
-    // Prevent concurrent polling requests
-    if (isPolling) return;
-
-    isPolling = true;
-
-    try {
-      const response = await fetch("/api/attendance/data");
-
-      if (!response.ok) {
-        throw new Error("Network response was not ok");
-      }
-
-      const result = await response.json();
-
-      if (result.status === "success") {
-        const currentHash = generateDataHash(result.data);
-        const hasChanges =
-          result.max_id > lastMaxId || currentHash !== lastDataHash;
-
-        // Only update if there are actual changes
-        if (hasChanges) {
-          lastMaxId = result.max_id;
-          lastDataHash = currentHash;
-          renderTable(result.data);
-
-          // Flash effect
-          const tbody = document.getElementById("attendanceBody");
-          if (tbody) {
-            tbody.style.opacity = "0.5";
-            setTimeout(() => {
-              tbody.style.opacity = "1";
-            }, 150);
-          }
-
-          // Only show "Live" when data actually changes
-          updateSyncIndicator("synced");
-        }
-        // If no changes, do NOT update the indicator at all
-      } else {
-        updateSyncIndicator("error");
-      }
-    } catch (error) {
-      console.error("Error polling attendance:", error);
-      updateSyncIndicator("error");
-    } finally {
-      isPolling = false;
-    }
-  }
-
-  function applySearchFilter() {
-    const searchTerm = (
-      document.getElementById("searchInput")?.value || ""
-    ).toLowerCase();
-    const roleFilter = (
-      document.getElementById("roleFilter")?.value || ""
-    ).toLowerCase();
-    const table = document.getElementById("attendanceTable");
-
-    if (!table) return;
-
-    const rows = table
-      .getElementsByTagName("tbody")[0]
-      ?.getElementsByTagName("tr");
-    if (!rows) return;
-
-    for (let i = 0; i < rows.length; i++) {
-      const rowText = rows[i].textContent.toLowerCase();
-      const matchesSearch = !searchTerm || rowText.includes(searchTerm);
-      const matchesRole = !roleFilter || rowText.includes(roleFilter);
-      rows[i].style.display = matchesSearch && matchesRole ? "" : "none";
-    }
-  }
-
-  // Initialize on page load
-  document.addEventListener("DOMContentLoaded", function () {
-    // Load initial data if available
-    if (initialRecords && initialRecords.length > 0) {
-      lastMaxId = Math.max(...initialRecords.map((r) => r.id || 0));
-      lastDataHash = generateDataHash(initialRecords);
-      renderTable(initialRecords);
-      updateSyncIndicator("waiting");
-    } else {
-      updateSyncIndicator("waiting");
-    }
-
-    // Start polling
-    pollAttendance();
-
-    // Continue polling at regular intervals
-    setInterval(pollAttendance, POLL_INTERVAL);
-
-    // Search functionality
-    document
-      .getElementById("searchInput")
-      ?.addEventListener("keyup", applySearchFilter);
-
-    // Role filter functionality
-    document
-      .getElementById("roleFilter")
-      ?.addEventListener("change", applySearchFilter);
+  [roleFilter, perPageSelect].forEach(el => {
+    if (el) el.addEventListener('change', () => {
+      currentPageInput.value = 1;
+      form.submit();
+    });
   });
+
+  if (clearSearch) {
+    clearSearch.addEventListener('click', () => {
+      searchInput.value = '';
+      currentPageInput.value = 1;
+      form.submit();
+    });
+  }
+}
+
+// Realtime polling (latest records)
+async function pollLatest() {
+  if (isPolling) return;
+  
+  isPolling = true;
+  updateSyncStatus('syncing');
+  
+  try {
+    const res = await fetch('/api/attendance/data');
+    if (!res.ok) throw new Error('API error');
+    
+    const { data } = await res.json();
+    // Show preview of latest 5 in corner or just indicator
+    updateSyncStatus('live');
+    
+  } catch (e) {
+    console.error('Polling error:', e);
+    updateSyncStatus('idle');
+  } finally {
+    isPolling = false;
+    setTimeout(pollLatest, POLL_INTERVAL);
+  }
+}
+
+// Init
+document.addEventListener('DOMContentLoaded', () => {
+  initHandlers();
+  updateSyncStatus('idle');
+  
+  // Start polling
+  setTimeout(pollLatest, 1000);
+  
+  // Show/hide clear button
+  const checkClearBtn = () => {
+    clearSearch.style.display = searchInput.value ? 'block' : 'none';
+    clearSearch.previousElementSibling.style.borderRadius = searchInput.value ? '10px 0 0 10px' : '10px';
+  };
+  searchInput.addEventListener('input', checkClearBtn);
+  checkClearBtn();
+});
 </script>
 {% endblock %}

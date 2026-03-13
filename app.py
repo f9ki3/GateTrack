@@ -284,10 +284,35 @@ def get_all_attendance():
 @app.route('/attendance')
 @login_required
 def attendance():
-    # Get all attendance records
-    attendance_records = get_all_attendance()
+    # Pagination and filter params (follow users exactly)
+    page = int(request.args.get('page', 1))
+    per_page = int(request.args.get('per_page', 10))
+    search_term = request.args.get('search', '').strip()
+    role_filter = request.args.get('role', '')
     
-    return render_template('attendance.html', attendance_records=attendance_records)
+    if per_page not in [10, 20, 30, 100]:
+        per_page = 10
+    
+    page = max(1, page)
+    
+    # Get paginated attendance
+    from database_utils import get_paginated_attendance
+    records, total_count = get_paginated_attendance(page, per_page, search_term, role_filter)
+    
+    total_pages = (total_count + per_page - 1) // per_page
+    
+    if page > total_pages and total_pages > 0:
+        return redirect(url_for('attendance', page=total_pages, per_page=per_page, 
+                               search=search_term, role=role_filter))
+    
+    return render_template('attendance.html', 
+                         records=records,
+                         page=page,
+                         per_page=per_page,
+                         total_count=total_count,
+                         total_pages=total_pages,
+                         search_term=search_term,
+                         role_filter=role_filter)
 
 @app.route('/api/attendance/data')
 @login_required

@@ -364,6 +364,73 @@ def export_attendance_csv_data(role_filter: str = '', date_from: str = None, dat
     return records
 
 
+# ==================== PAGINATED ATTENDANCE ====================
+
+def get_paginated_attendance(page: int = 1, per_page: int = 10, search_term: str = '', role_filter: str = '') -> tuple[list[dict], int]:
+    """Get paginated attendance records with user info and computed duration. Returns (records, total_count)."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    offset = (page - 1) * per_page
+    
+    # Base query parts
+    where_conditions = []
+    params = []
+    
+    if search_term:
+        where_conditions.append('(u.username LIKE ? OR u.email LIKE ?)')
+        pattern = f'%{search_term}%'
+        params.extend([pattern, pattern])
+    
+    if role_filter:
+        where_conditions.append('u.role = ?')
+        params.append(role_filter)
+    
+    where_clause = 'WHERE ' + ' AND '.join(where_conditions) if where_conditions else ''
+    
+    # Count total
+    count_query = f'''
+        SELECT COUNT(*) FROM attendance a
+        LEFT JOIN users u ON a.user_id = u.id
+        {where_clause}
+    '''
+    cursor.execute(count_query, params)
+    total_count = cursor.fetchone()[0]
+    
+    # Paginated query with duration calculation
+    paginated_query = f'''
+        SELECT a.id, a.user_id, a.time_in, a.time_out, a.created_at,
+               u.email, u.username, u.first_name, u.last_name, u.role, u.rfid,
+               CASE 
+                 WHEN a.time_out IS NOT NULL AND a.time_in IS NOT NULL THEN
+                   CASE 
+                     WHEN strftime('%s', a.time_out) - strftime('%s', a.time_in) >= 3600 THEN
+                       printf('%dh %dm', 
+                              (strftime('%s', a.time_out) - strftime('%s', a.time_in)) / 3600,
+                              ((strftime('%s', a.time_out) - strftime('%s', a.time_in)) / 60) % 60
+                             )
+                     ELSE
+                       printf('%dm', (strftime('%s', a.time_out) - strftime('%s', a.time_in)) / 60)
+                   END
+                 ELSE '-'
+               END as duration
+        FROM attendance a
+        LEFT JOIN users u ON a.user_id = u.id
+        {where_clause}
+        ORDER BY a.created_at DESC
+        LIMIT ? OFFSET ?
+    '''
+    params.extend([per_page, offset])
+    cursor.execute(paginated_query, params)
+    rows = cursor.fetchall()
+    
+    # Convert to dicts
+    records = [dict(row) for row in rows]
+    
+    conn.close()
+    return records, total_count
+
+
 # ==================== EXAMPLE USAGE ====================
 
 if __name__ == "__main__":
