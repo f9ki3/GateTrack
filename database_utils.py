@@ -400,7 +400,9 @@ def get_paginated_attendance(page: int = 1, per_page: int = 10, search_term: str
     # Paginated query with duration calculation
     paginated_query = f'''
         SELECT a.id, a.user_id, a.time_in, a.time_out, a.created_at,
-               u.email, u.username, u.first_name, u.last_name, u.role, u.rfid,
+               COALESCE(u.first_name, '') as first_name,
+               COALESCE(u.last_name, '') as last_name,
+               u.email, u.username, u.role, u.rfid,
                CASE 
                  WHEN a.time_out IS NOT NULL AND a.time_in IS NOT NULL THEN
                    CASE 
