@@ -206,10 +206,10 @@ def add_user():
             flash('A user with this email already exists.', 'error')
             return render_template('add_users.html')
         
-        # For teacher role, username and password are required
-        if role == 'teacher':
+        # For super_admin and teacher roles, username and password are required
+        if role in ['super_admin', 'teacher']:
             if not username or not password:
-                flash('Username and Password are required for Teacher role.', 'error')
+                flash('Username and Password are required for Super Admin and Teacher roles.', 'error')
                 return render_template('add_users.html')
         
         try:

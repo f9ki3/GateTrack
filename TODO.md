@@ -1,29 +1,23 @@
-# GateTrack Export Feature - COMPLETE ✅
+# Fix Add Users: Ensure super_admin and teacher require username/password
 
-**All Steps Implemented Successfully:**
+## Plan Breakdown & Progress
 
-✅ Step 1: TODO.md created  
-✅ Step 2: database_utils.py - export functions added  
-✅ Step 3: app.py - /export/users_csv & /export/attendance_csv routes  
-✅ Step 4: templates/users.html - Export dropdown (filtered CSV)  
-✅ Step 5: templates/attendance.html - Export CSV button  
-✅ Step 6: Ready for testing
+### 1. ✅ [Complete] Understand codebase
 
-**Features:**
+- Analyzed app.py, templates/add_users.html, templates/users.html, database_utils.py
+- Identified issue: Backend validation only for 'teacher', not 'super_admin'
 
-- CSV exports with headers & proper quoting
-- Users: preserves current filters/search/role/page (full matching data)
-- Attendance: all records (role filter support)
-- Secure: login_required only
-- Auto filenames: users_export_YYYYMMDD_HHMMSS.csv
+### 2. ✅ [Complete] Get user approval for plan
 
-**Test:**
+### 3. ✅ [Complete] Edit app.py
 
-```
-cd /Users/mac/GateTrack
-python app.py
-```
+- Updated validation to `if role in ['super_admin', 'teacher']`
 
-- Login → /users → filter → Export → verify filtered CSV
-- /attendance → Export CSV → verify records
-- Downloads work in browser
+### 4. ✅ [Complete] Test changes
+
+- Edit verified via diff and re-read file
+- Backend now requires username/password for both roles
+
+### 5. ✅ [Complete] Task done
+
+- Add users fixed for super_admin and teacher roles

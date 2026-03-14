@@ -482,7 +482,7 @@ function toggleCredentials() {
   const username = document.getElementById('username');
   const password = document.getElementById('password');
   
-  if (['super_admin', 'teacher', 'staff', 'technician'].includes(role)) {
+  if (['super_admin', 'teacher'].includes(role)) {
     creds.style.display = 'block';
     username.required = true;
     password.required = true;
@@ -511,7 +511,7 @@ document.getElementById('togglePassword').addEventListener('click', function() {
 // Form validation
 document.getElementById('addUserForm').addEventListener('submit', function(e) {
   const role = document.getElementById('role').value;
-  if (['super_admin', 'teacher', 'staff', 'technician'].includes(role)) {
+  if (['super_admin', 'teacher'].includes(role)) {
     if (!document.getElementById('username').value.trim() || !document.getElementById('password').value.trim()) {
       e.preventDefault();
       alert('Username and password required for this role');
