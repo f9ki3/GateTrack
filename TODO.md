@@ -16,4 +16,6 @@
 - Backend (`app.py /edit_user`): Handles `username` from form.
 - Frontend (`users.html`): Added username input + JS populate/toggle/validation.
 
-**Final Status**: All steps checked. Ready to test.
+**RFID Uniqueness Added** (feedback #3): Prevent duplicate RFID on add_user + flash error. Matches edit_user logic.
+
+**Final Status**: ✅ Auto-gen usernames, ✅ Edit username, ✅ Unique RFID (add/edit).

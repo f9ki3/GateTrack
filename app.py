@@ -196,30 +196,36 @@ def add_user():
         # Validation
         if not role or not email:
             flash('Role and Email are required.', 'error')
-            return render_template('add_users.html')
+            return render_template('users.html')
         
         # RFID is required for student and guest roles
         if role in ['student', 'guest'] and not rfid:
             flash('RFID is required for Student and Guest roles.', 'error')
-            return render_template('add_users.html')
+            return render_template('users.html')
         
         # Check if email already exists
         existing_user = get_user_by_email(email)
         if existing_user:
             flash('A user with this email already exists.', 'error')
-            return render_template('add_users.html')
+            return render_template('users.html')
+
+        # Check RFID uniqueness if provided
+        if rfid:
+            existing_rfid_user = get_user_by_rfid(rfid)
+            if existing_rfid_user:
+                flash('This RFID tag is already assigned to another user.', 'error')
+                return render_template('users.html')
         
         # For super_admin and teacher roles, username and password are required
         if role in ['super_admin', 'teacher']:
             if not username or not password:
                 flash('Username and Password are required for Super Admin and Teacher roles.', 'error')
-                return render_template('add_users.html')
+                return render_template('users.html')
 
         # Auto-generate username for staff, technician, guest if not provided
         if role in ['staff', 'technician', 'guest'] and not username:
             count = get_user_count_by_role(role)
             username = f"{role}{count + 1:03d}"
-            flash(f'Auto-generated username: {username}', 'info')
 
         try:
             # Insert user into database
