@@ -1,5 +1,7 @@
 from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify, Response
-from database_utils import insert_user, get_all_users, get_user_by_email, delete_user
+
+from database_utils import insert_user, get_all_users, get_user_by_email, delete_user, update_user, get_user_by_id
+
 import sqlite3
 from functools import wraps
 from datetime import datetime, date
@@ -171,6 +173,7 @@ def users():
                          search_term=search_term,
                          role_filter=role_filter)
 
+
 @app.route('/add_user', methods=['GET', 'POST'])
 @login_required
 def add_user():
@@ -211,11 +214,17 @@ def add_user():
             if not username or not password:
                 flash('Username and Password are required for Super Admin and Teacher roles.', 'error')
                 return render_template('add_users.html')
-        
+
+        # Auto-generate username for staff, technician, guest if not provided
+        if role in ['staff', 'technician', 'guest'] and not username:
+            count = get_user_count_by_role(role)
+            username = f"{role}{count + 1:03d}"
+            flash(f'Auto-generated username: {username}', 'info')
+
         try:
             # Insert user into database
             user_id = insert_user(
-                username=username if username else None,
+                username=username,
                 email=email,
                 password=password if password else None,
                 contact=contact if contact else None,
@@ -235,6 +244,95 @@ def add_user():
     
     # GET request - show add user form
     return render_template('add_users.html')
+
+@app.route('/edit_user', methods=['POST'])
+@login_required
+def edit_user():
+    # Only super_admin and teacher can edit
+    if session.get('role') not in ['super_admin', 'teacher']:
+        flash('You do not have permission to edit users.', 'error')
+        return redirect(url_for('dashboard'))
+
+    user_id = request.form.get('user_id', '').strip()
+    if not user_id.isdigit():
+        flash('Invalid user ID.', 'error')
+        return redirect(url_for('users'))
+
+    user_id = int(user_id)
+
+    # Prevent editing yourself
+    if session.get('user_id') == user_id:
+        flash('You cannot edit your own account from this page.', 'error')
+        return redirect(url_for('users'))
+
+    # Get current user first
+    current_user = get_user_by_id(user_id)
+    if not current_user:
+        flash('User not found.', 'error')
+        return redirect(url_for('users'))
+
+    # Read form values
+    role = request.form.get('role', '').strip().lower()
+    email = request.form.get('email', '').strip().lower()
+    contact = request.form.get('contact', '').strip()
+    rfid = request.form.get('rfid', '').strip().upper()
+    first_name = request.form.get('first_name', '').strip()
+    last_name = request.form.get('last_name', '').strip()
+
+    allowed_roles = ['super_admin', 'teacher', 'staff', 'technician', 'guest']
+    if role not in allowed_roles:
+        flash('Invalid role selected.', 'error')
+        return redirect(url_for('users'))
+
+    # Optional: teacher should not be able to assign super_admin
+    if session.get('role') == 'teacher' and role == 'super_admin':
+        flash('Teachers cannot assign Super Admin role.', 'error')
+        return redirect(url_for('users'))
+
+    # Required validation
+    if not first_name or not last_name or not email:
+        flash('First name, last name, and email are required.', 'error')
+        return redirect(url_for('users'))
+
+    # RFID required for all users if your system needs RFID always
+    if not rfid:
+        flash('RFID is required.', 'error')
+        return redirect(url_for('users'))
+
+    # Check email uniqueness except current user
+    existing_user = get_user_by_email(email)
+    if existing_user and existing_user['id'] != user_id:
+        flash('A user with this email already exists.', 'error')
+        return redirect(url_for('users'))
+
+    # Optional RFID uniqueness check
+    existing_rfid_user = get_user_by_rfid(rfid)
+    if existing_rfid_user and existing_rfid_user['id'] != user_id:
+        flash('This RFID tag is already assigned to another user.', 'error')
+        return redirect(url_for('users'))
+
+    try:
+        update_data = {
+            'role': role,
+            'email': email,
+            'first_name': first_name,
+            'last_name': last_name,
+            'contact': contact,
+            'rfid': rfid
+        }
+
+        success = update_user(user_id, **update_data)
+
+        if success:
+            flash('User updated successfully!', 'success')
+        else:
+            flash('No changes were made or update failed.', 'error')
+
+    except Exception as e:
+        app.logger.exception('Error updating user')
+        flash(f'Error updating user: {str(e)}', 'error')
+
+    return redirect(url_for('users'))
 
 @app.route('/delete_user/<int:user_id>', methods=['POST'])
 @login_required

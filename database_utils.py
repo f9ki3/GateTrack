@@ -229,6 +229,7 @@ def get_paginated_users(page: int = 1, per_page: int = 10, search_term: str = ''
 
 # ==================== UPDATE OPERATIONS ====================
 
+
 def update_user(user_id: int, **kwargs) -> bool:
     """Update user fields. Returns True if successful."""
     conn = get_connection()
@@ -238,13 +239,14 @@ def update_user(user_id: int, **kwargs) -> bool:
     fields = []
     values = []
     
-    allowed_fields = ['username', 'email', 'password', 'contact', 'gender', 'role', 'rfid']
+    allowed_fields = ['username', 'email', 'password', 'contact', 'gender', 'role', 'rfid', 'first_name', 'last_name']
     for key, value in kwargs.items():
-        if key in allowed_fields:
+        if key in allowed_fields and value is not None:
             fields.append(f'{key} = ?')
             values.append(value)
     
     if not fields:
+        conn.close()
         return False
     
     values.append(user_id)
@@ -259,6 +261,7 @@ def update_user(user_id: int, **kwargs) -> bool:
     if success:
         print(f"Updated user ID: {user_id}")
     return success
+
 
 
 # ==================== DELETE OPERATIONS ====================
