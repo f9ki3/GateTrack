@@ -253,13 +253,13 @@
     </div>
 
     <div class="d-flex gap-2 mt-4">
-      <button
+      <!-- <button
         type="button"
         class="btn btn-secondary flex-fill"
         data-bs-dismiss="offcanvas"
       >
         Cancel
-      </button>
+      </button> -->
       <button type="submit" class="btn btn-primary flex-fill">
         Update User
       </button>
@@ -477,7 +477,7 @@
               <td class="py-3">{{ user.created_at.strftime('%Y-%m-%d %H:%M:%S') if user.created_at else '-' }}</td>
 
               <td class="py-3">
-                <button class="btn btn-sm btn-outline-primary me-1" title="Edit" data-bs-toggle="offcanvas" data-bs-target="#editUserOffcanvas" 
+                <button class="btn btn-sm me-1" title="Edit" data-bs-toggle="offcanvas" data-bs-target="#editUserOffcanvas" 
                   data-user-id="{{ user.id }}"
                   data-user-role="{{ user.role }}"
                   data-user-username="{{ user.username or '' }}"
@@ -488,7 +488,7 @@
                   data-user-rfid="{{ user.rfid or '' }}">
                   <i class="bi bi-pencil"></i>
                 </button>
-                <button class="btn btn-sm btn-danger" title="Delete" data-bs-toggle="modal" data-bs-target="#deleteModal" data-user-id="{{ user.id }}" data-user-email="{{ user.email }}" data-user-role="{{ user.role }}">
+                <button class="btn btn-sm" title="Delete" data-bs-toggle="modal" data-bs-target="#deleteModal" data-user-id="{{ user.id }}" data-user-email="{{ user.email }}" data-user-role="{{ user.role }}">
                   <i class="bi bi-trash"></i>
                 </button>
               </td>
@@ -549,18 +549,18 @@
 </div>
 
 <!-- Delete Confirmation Modal -->
-<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+<div class="modal fade mt-5" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
   <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title text-danger" id="deleteModalLabel">
+        <h5 class="modal-title" id="deleteModalLabel">
           <i class="bi bi-exclamation-triangle me-2"></i>Confirm Delete
         </h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">
         <p>Are you sure you want to delete this user?</p>
-        <div class="alert alert-secondary">
+        <div class="alert alert-dark">
           <strong>ID:</strong> <span id="deleteUserId"></span><br>
           <strong>Email:</strong> <span id="deleteUserEmail"></span><br>
           <strong>Role:</strong> <span id="deleteUserRole"></span>
