@@ -8,4 +8,12 @@
 - [x] 4. Edge cases handled (count+1 incremental, manual if provided).
 - [x] 5. Task complete: Backend updated for auto-gen usernames.
 
-Current progress: Starting implementation.
+## Feedback Iteration Complete
+
+**Original Task**: Backend auto-gen usernames ✅
+**Feedback Fix**: Edit username support added ✅
+
+- Backend (`app.py /edit_user`): Handles `username` from form.
+- Frontend (`users.html`): Added username input + JS populate/toggle/validation.
+
+**Final Status**: All steps checked. Ready to test.

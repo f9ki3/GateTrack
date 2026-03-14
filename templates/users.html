@@ -175,6 +175,17 @@
       <option value="guest">Guest</option>
     </select>
 
+    <!-- Credentials section for edit -->
+    <div id="editCredentialsSection" style="display: none;" class="mb-3">
+      <label for="edit_username" class="form-label">Username</label>
+      <input
+        type="text"
+        class="form-control"
+        id="edit_username"
+        name="username"
+      />
+    </div>
+
     <div class="row g-3">
       <div class="col-md-6">
         <label for="edit_first_name" class="form-label">
@@ -654,16 +665,38 @@ document.getElementById('editUserOffcanvas').addEventListener('show.bs.offcanvas
   const btn = e.relatedTarget;
   document.getElementById('edit_user_id').value = btn.dataset.userId;
   document.getElementById('edit_role').value = btn.dataset.userRole;
+  document.getElementById('edit_username').value = btn.dataset.userUsername || '';
   document.getElementById('edit_first_name').value = btn.dataset.userFirstName;
   document.getElementById('edit_last_name').value = btn.dataset.userLastName;
   document.getElementById('edit_email').value = btn.dataset.userEmail;
   document.getElementById('edit_contact').value = btn.dataset.userContact;
   document.getElementById('edit_rfid').value = btn.dataset.userRfid;
+  toggleEditCredentials();
 });
 
 
 
-// Credentials not editable - no toggle needed
+function toggleEditCredentials() {
+  const role = document.getElementById('edit_role').value;
+  const creds = document.getElementById('editCredentialsSection');
+  
+  if (['super_admin', 'teacher', 'staff', 'technician'].includes(role)) {
+    creds.style.display = 'block';
+  } else {
+    creds.style.display = 'none';
+  }
+}
+
+// Edit form validation
+document.getElementById('editUserForm').addEventListener('submit', function(e) {
+  const role = document.getElementById('edit_role').value;
+  if (['super_admin', 'teacher'].includes(role)) {
+    if (!document.getElementById('edit_username').value.trim()) {
+      e.preventDefault();
+      alert('Username required for this role');
+    }
+  }
+});
 
 
 

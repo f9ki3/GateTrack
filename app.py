@@ -272,6 +272,7 @@ def edit_user():
         return redirect(url_for('users'))
 
     # Read form values
+    username = request.form.get('username', '').strip()
     role = request.form.get('role', '').strip().lower()
     email = request.form.get('email', '').strip().lower()
     contact = request.form.get('contact', '').strip()
@@ -313,6 +314,7 @@ def edit_user():
 
     try:
         update_data = {
+            'username': username if username else current_user['username'],
             'role': role,
             'email': email,
             'first_name': first_name,
