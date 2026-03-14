@@ -798,6 +798,100 @@ def export_user_attendance(user_id):
         headers={'Content-Disposition': f'attachment; filename={filename}'}
     )
     
+@app.route('/api/update_profile', methods=['POST'])
+@login_required
+def update_profile():
+    try:
+        user_id = int(request.form['user_id'])
+        if session.get('user_id') != user_id:
+            return jsonify({'success': False, 'message': 'Unauthorized'}), 403
+        
+        first_name = request.form.get('first_name', '').strip()
+        last_name = request.form.get('last_name', '').strip()
+        email = request.form.get('email', '').strip().lower()
+        contact = request.form.get('contact', '').strip() or None
+        
+        if not first_name or not last_name or not email:
+            return jsonify({'success': False, 'message': 'First name, last name, and email required'}), 400
+        
+        # Check email uniqueness (except self)
+        existing = get_user_by_email(email)
+        if existing and existing['id'] != user_id:
+            return jsonify({'success': False, 'message': 'Email already exists'}), 400
+        
+        # Update DB
+        success = update_user(
+            user_id,
+            first_name=first_name,
+            last_name=last_name,
+            email=email,
+            contact=contact
+        )
+        
+        if success:
+            # Update session
+            session['first_name'] = first_name
+            session['last_name'] = last_name
+            session['email'] = email
+            session['contact'] = contact
+            session.modified = True
+            
+            return jsonify({
+                'success': True,
+                'message': 'Profile updated successfully',
+                'user': {
+                    'first_name': first_name,
+                    'last_name': last_name,
+                    'email': email
+                }
+            })
+        else:
+            return jsonify({'success': False, 'message': 'Update failed'}), 500
+            
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/change_password', methods=['POST'])
+@login_required
+def change_password():
+    try:
+        user_id = int(request.form['user_id'])
+        if session.get('user_id') != user_id:
+            return jsonify({'success': False, 'message': 'Unauthorized'}), 403
+        
+        current_password = request.form.get('current_password', '')
+        new_password = request.form.get('new_password', '')
+        confirm_password = request.form.get('confirm_password', '')
+        
+        if new_password != confirm_password:
+            return jsonify({'success': False, 'message': 'New passwords do not match'}), 400
+        
+        if len(new_password) < 6:
+            return jsonify({'success': False, 'message': 'New password must be at least 6 characters'}), 400
+        
+        # Get current user from DB
+        user = get_user_by_id(user_id)
+        if not user:
+            return jsonify({'success': False, 'message': 'User not found'}), 404
+        
+        # Verify current password (plain text - upgrade to hashed in production)
+        if user['password'] != current_password:
+            return jsonify({'success': False, 'message': 'Current password incorrect'}), 401
+        
+        # Update password
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute('UPDATE users SET password = ? WHERE id = ?', (new_password, user_id))
+        conn.commit()
+        conn.close()
+        
+        return jsonify({'success': True, 'message': 'Password changed successfully'})
+        
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", debug=True)
 

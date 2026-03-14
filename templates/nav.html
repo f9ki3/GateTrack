@@ -317,38 +317,49 @@
           });
         });
 
-        // Profile form submit
+// Profile form submit
         document
           .getElementById("profileForm")
           .addEventListener("submit", async (e) => {
             e.preventDefault();
             const formData = new FormData(e.target);
+            const firstName = formData.get('first_name');
+            const lastName = formData.get('last_name');
+            const email = formData.get('email');
             try {
               const response = await fetch("/api/update_profile", {
                 method: "POST",
                 body: formData,
               });
-              if (response.ok) {
+              const data = await response.json();
+              if (response.ok && data.success) {
+                // Update navbar dropdown name
+                const dropdownBtn = document.querySelector('.btn.btn-outline-light.dropdown-toggle');
+                const newName = `${firstName} ${lastName}`.trim() || email;
+                dropdownBtn.lastElementChild.textContent = newName;
+                
+                // Update form inputs
+                document.getElementById('first_name').value = firstName;
+                document.getElementById('last_name').value = lastName;
+                document.getElementById('email').value = email;
+                
                 alert("Profile updated successfully!");
-                bootstrap.Offcanvas.getInstance(
-                  document.getElementById("settingsOffcanvas"),
-                ).hide();
+                // Don't close, keep open to see changes
               } else {
-                alert("Update failed!");
+                alert(data.message || "Update failed!");
               }
             } catch (err) {
               alert("Error: " + err.message);
             }
           });
 
-        // Password form submit
+// Password form submit
         document
           .getElementById("passwordForm")
           .addEventListener("submit", async (e) => {
             e.preventDefault();
             const newPass = document.getElementById("new_password").value;
-            const confirmPass =
-              document.getElementById("confirm_password").value;
+            const confirmPass = document.getElementById("confirm_password").value;
             if (newPass !== confirmPass) {
               alert("Passwords do not match!");
               return;
@@ -359,13 +370,14 @@
                 method: "POST",
                 body: formData,
               });
-              if (response.ok) {
+              const data = await response.json();
+              if (response.ok && data.success) {
                 alert("Password changed successfully!");
-                bootstrap.Offcanvas.getInstance(
-                  document.getElementById("settingsOffcanvas"),
-                ).hide();
+                const offcanvasElement = document.getElementById("settingsOffcanvas");
+                const offcanvas = bootstrap.Offcanvas.getInstance(offcanvasElement);
+                if (offcanvas) offcanvas.hide();
               } else {
-                alert("Change failed!");
+                alert(data.message || "Change failed!");
               }
             } catch (err) {
               alert("Error: " + err.message);
