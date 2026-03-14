@@ -142,7 +142,9 @@ def dashboard():
 
     
     # Get all users (for admin/teacher view)
-    users = get_all_users()
+
+    all_users = get_all_users()
+    recent_users = sorted(all_users, key=lambda u: u['created_at'] or '1900-01-01', reverse=True)[:10]
     
     return render_template(
         'dashboard.html',
@@ -153,11 +155,12 @@ def dashboard():
         technician_count=technician_count,
         guest_count=guest_count,
 
-        users=users,
+        users=recent_users,
         teachers_present=teachers_present,
         lab_status=lab_status
 
     )
+
 
 
 @app.route('/users')

@@ -17,6 +17,57 @@ block extra_css %}
 {% endblock %} {% block content %}
 
 <style>
+  .bg-danger {
+    background-color: #dc3545 !important;
+  }
+  .bg-success {
+    background-color: #28a745 !important;
+  }
+  .bg-info {
+    background-color: #17a2b8 !important;
+  }
+  .bg-primary {
+    background-color: #0d6efd !important;
+  }
+  .bg-warning {
+    background-color: #ffc107 !important;
+    color: #000 !important;
+  }
+  .badge-role-super-admin {
+    background-color: #3b82f6 !important;
+    color: white !important;
+    border-color: #3b82f6 !important;
+    border-radius: 20px !important;
+    font-size: 12px !important;
+  }
+  .badge-role-teacher {
+    background-color: #10b981 !important;
+    color: white !important;
+    border-color: #10b981 !important;
+    border-radius: 20px !important;
+    font-size: 12px !important;
+  }
+  .badge-role-staff {
+    background-color: #06b6d4 !important;
+    color: white !important;
+    border-color: #06b6d4 !important;
+    border-radius: 20px !important;
+    font-size: 12px !important;
+  }
+  .badge-role-technician {
+    background-color: #f59e0b !important;
+    color: #1f2937 !important;
+    border-color: #f59e0b !important;
+    border-radius: 20px !important;
+    font-size: 12px !important;
+  }
+  .badge-role-guest {
+    background-color: #6b7280 !important;
+    color: white !important;
+    border-color: #6b7280 !important;
+    border-radius: 20px !important;
+    font-size: 12px !important;
+  }
   .dashboard-card {
     height: 100%;
     border: 0 !important;
@@ -351,8 +402,9 @@ block extra_css %}
                 <th>Created</th>
               </tr>
             </thead>
+
             <tbody>
-              {% for user in users %}
+              {% for user in users[:15] %}
               <tr>
                 <td>{{ user.id }}</td>
                 <td>{{ user.first_name or '-' }}</td>
@@ -360,21 +412,11 @@ block extra_css %}
                 <td>{{ user.username or '-' }}</td>
                 <td>{{ user.email }}</td>
                 <td>
-                  {% if user.role == 'super_admin' %}
-                  <span class="badge bg-danger">{{ user.role }}</span>
-                  {% elif user.role == 'teacher' %}
-                  <span class="badge bg-success">{{ user.role }}</span>
-                  {% elif user.role == 'staff' %}
-                  <span class="badge bg-warning text-dark"
-                    >{{ user.role }}</span
+                  <span
+                    class="badge badge-role-{{ user.role | replace('_', '-') }}"
                   >
-                  {% elif user.role == 'technician' %}
-                  <span class="badge bg-primary">{{ user.role }}</span>
-                  {% else %}
-                  <span class="badge bg-warning text-dark"
-                    >{{ user.role }}</span
-                  >
-                  {% endif %}
+                    {{ user.role.replace('_', ' ').title() }}
+                  </span>
                 </td>
                 <td><code>{{ user.rfid or 'N/A' }}</code></td>
                 <td>{{ user.created_at }}</td>
