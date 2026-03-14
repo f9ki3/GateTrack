@@ -4,6 +4,16 @@
 
 {% block extra_css %}
 <style>
+  .badge-in {
+    background-color: #06b6d4 !important;
+    color: white !important;
+    border-color: #06b6d4 !important;
+  }
+  .badge-out {
+    background-color: #f59e0b !important;
+    color: #1f2937 !important;
+    border-color: #f59e0b !important;
+  }
   /* Modern Toolbar */
   .attendance-header {
     background: var(--bs-card-bg);
@@ -186,7 +196,7 @@
       <div class="card-body">
         <form method="GET" action="{{ url_for('attendance') }}" id="attendanceFilterForm" style="display: flex;flex-wrap: nowrap;gap: 0.75rem;align-items: stretch;width: 100%;height: 42px;font-family: system-ui, -apple-system, sans-serif;">
           <input type="hidden" name="page" id="hiddenPageAttendance" value="{{ page }}">
-          <div style="width: 30%;display: flex;align-items: center;border: 1px solid var(--border-color);border-radius: 8px;background: var(--bg-secondary);transition: border-color 0.2s;overflow: hidden;">
+          <div style="width: 70%;display: flex;align-items: center;border: 1px solid var(--border-color);border-radius: 8px;background: var(--bg-secondary);transition: border-color 0.2s;overflow: hidden;">
             <span style="padding: 0 0.75rem;color: var(--text-secondary);display: flex;align-items: center;">
               <i class="bi bi-search"></i>
             </span>
@@ -197,7 +207,7 @@
             <a href="{{ url_for('export_attendance_csv', page=page, per_page=per_page, search=search_term) }}" style="flex: 1;display: inline-flex;align-items: center;justify-content: center;padding: 0.6rem 1rem;font-size: 0.95rem;font-weight: 500;color: var(--text-secondary);background: transparent;border: 1px solid var(--border-color);border-radius: 8px;text-decoration: none;white-space: nowrap;cursor: pointer;transition: all 0.2s;" onmouseover="this.style.borderColor = 'var(--text-secondary)';this.style.color = 'var(--text-primary)';this.style.backgroundColor = 'var(--bg-secondary)';" onmouseout="this.style.borderColor = 'var(--border-color)';this.style.color = 'var(--text-secondary)';this.style.backgroundColor = 'transparent';">
               <i class="bi bi-download" style="margin-right: 0.4rem;"></i>Export CSV
             </a>
-            <div style="flex: 1 1 120px;">
+            <div >
               <select id="perPageSelectAttendance" name="per_page" style="width: 100%;height: 100%;padding: 0.6rem 0.75rem;font-size: 0.95rem;border: 1px solid var(--border-color);border-radius: 8px;outline: none;color: var(--text-primary);background-color: var(--bg-secondary);cursor: pointer;">
                 <option value="10" {{ 'selected' if per_page == 10 }} >10 per page</option>
                 <option value="20" {{ 'selected' if per_page == 20 }} >20 per page</option>
@@ -242,9 +252,8 @@
             <tr>
               <td class="py-3">{{ record.id }}</td>
               <td class="py-3">
-                <div class="d-flex align-items-center">
+                <div class="d-flex align-items-center gap-2">
                   {{ record.username or record.email or 'Unknown' }}
-                </div>
               </td>
 
               <td class="py-3">
@@ -261,14 +270,14 @@
               <td class="py-3">{{ record.created_at[:10] if record.created_at else '-' }}</td>
               <td class="py-3">
                 {% if record.time_in %}
-                  <span class="text-success-light"><i class="bi bi-arrow-right-circle me-1"></i>{{ (record.time_in.split(' ')[1] if record.time_in else '')|format_time_12hr }}</span>
+                  <span class="badge badge-completed"><i class="bi bi-arrow-right-circle me-1"></i>{{ (record.time_in.split(' ')[1] if record.time_in else '')|format_time_12hr }}</span>
                 {% else %}
                   <span class="text-muted">-</span>
                 {% endif %}
               </td>
               <td class="py-3">
                 {% if record.time_out %}
-                  <span class="text-danger-light"><i class="bi bi-arrow-left-circle me-1"></i>{{ (record.time_out.split(' ')[1] if record.time_out else '')|format_time_12hr }}</span>
+                  <span class="badge badge-completed"><i class="bi bi-arrow-left-circle me-1"></i>{{ (record.time_out.split(' ')[1] if record.time_out else '')|format_time_12hr }}</span>
                 {% else %}
                   <span class="badge badge-pending">Pending</span>
                 {% endif %}

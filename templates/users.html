@@ -382,7 +382,7 @@
               <i class="bi bi-plus-circle me-1"></i>Add New User
             </button>
 
-            <a href="{{ url_for('export_users_csv', page=page, per_page=per_page, search=search_term, role=role_filter) }}"
+              <a href="{{ url_for('export_users_csv', page=page, per_page=per_page, search=search_term, role=role_filter) }}"
               style="
                 display: inline-flex;
                 align-items: center;
@@ -402,7 +402,7 @@
               onmouseover="this.style.borderColor='var(--text-secondary)';this.style.color='var(--text-primary)';this.style.backgroundColor='var(--bg-secondary)'"
               onmouseout="this.style.borderColor='var(--border-color)';this.style.color='var(--text-secondary)';this.style.backgroundColor='transparent'"
             >
-              <i class="bi bi-download me-1"></i>Export CSV
+              <i class="bi bi-download me-1"></i>Export Users
             </a>
             <div style="flex: 1 1 140px">
               <select id="perPageSelect" name="per_page" style="
@@ -477,6 +477,9 @@
               <td class="py-3">{{ user.created_at.strftime('%Y-%m-%d %H:%M:%S') if user.created_at else '-' }}</td>
 
               <td class="py-3">
+                <a href="{{ url_for('export_user_attendance', user_id=user.id) }}" class="btn btn-sm me-1" title="Export Attendance" download>
+                  <i class="bi bi-download"></i>
+                </a>
                 <button class="btn btn-sm me-1" title="Edit" data-bs-toggle="offcanvas" data-bs-target="#editUserOffcanvas" 
                   data-user-id="{{ user.id }}"
                   data-user-role="{{ user.role }}"
@@ -508,12 +511,6 @@
         <span class="text-muted small me-3">
           Showing {{ ((page-1)*per_page + 1)|int }} to {{ [page*per_page, total_count]|min }} of {{ total_count }} users
         </span>
-        <label class="text-muted small me-2">Per page:</label>
-        <select id="perPageSelectMobile" class="form-select form-select-sm d-md-none" style="width: auto;">
-          <option value="10" {{ 'selected' if per_page == 10 }}>10</option>
-          <option value="20" {{ 'selected' if per_page == 20 }}>20</option>
-          <option value="30" {{ 'selected' if per_page == 30 }}>30</option>
-        </select>
       </div>
     </div>
     <div class="col-md-6">

@@ -742,6 +742,42 @@ def export_attendance_csv():
         mimetype='text/csv',
         headers={'Content-Disposition': f'attachment; filename={filename}'}
     )
+
+@app.route('/export/user_attendance/<int:user_id>')
+@login_required
+def export_user_attendance(user_id):
+    """Export attendance records for specific user to CSV."""
+    from database_utils import get_user_attendance_csv_data
+    
+    # Verify user exists
+    user = get_user_by_id(user_id)
+    if not user:
+        flash('User not found.', 'error')
+        return redirect(url_for('users'))
+    
+    # Get user's attendance data
+    attendance_data = get_user_attendance_csv_data(user_id)
+    
+    # Create CSV
+    output = StringIO()
+    writer = csv.DictWriter(output, fieldnames=[
+        'id', 'username', 'first_name', 'last_name', 'email', 'date', 'time_in', 'time_out', 'duration', 'role'
+    ])
+    writer.writeheader()
+    writer.writerows(attendance_data)
+    
+    csv_content = output.getvalue()
+    output.close()
+    
+    # Filename with user info
+    username = user['username'] or user['email'].split('@')[0]
+    filename = f"{username}_attendance_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+    
+    return Response(
+        csv_content,
+        mimetype='text/csv',
+        headers={'Content-Disposition': f'attachment; filename={filename}'}
+    )
     
 if __name__ == "__main__":
     app.run(host="0.0.0.0", debug=True)

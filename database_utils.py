@@ -185,9 +185,9 @@ def get_paginated_users(page: int = 1, per_page: int = 10, search_term: str = ''
     params = []
     
     if search_term:
-        where_conditions.append('(username LIKE ? OR email LIKE ? OR first_name LIKE ? OR last_name LIKE ?)')
+        where_conditions.append('(username LIKE ? OR email LIKE ? OR first_name LIKE ? OR last_name LIKE ? OR rfid LIKE ?)')
         pattern = f'%{search_term}%'
-        params.extend([pattern, pattern, pattern, pattern])
+        params.extend([pattern, pattern, pattern, pattern, pattern])
     
     if role_filter:
         where_conditions.append('role = ?')
@@ -378,6 +378,44 @@ def export_attendance_csv_data(role_filter: str = '', date_from: str = None, dat
     rows = cursor.fetchall()
     
     # Convert to dicts
+    records = [dict(row) for row in rows]
+    conn.close()
+    return records
+
+
+def get_user_attendance_csv_data(user_id: int) -> List[dict]:
+    """Get attendance data for specific user joined with user info for CSV export."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    query = '''
+        SELECT a.id, 
+               date(a.created_at) as date,
+               substr(a.time_in, 12, 8) as time_in, 
+               substr(a.time_out, 12, 8) as time_out,
+               CASE 
+                 WHEN a.time_out IS NOT NULL AND a.time_in IS NOT NULL THEN
+                   CASE 
+                     WHEN strftime('%s', a.time_out) - strftime('%s', a.time_in) >= 3600 THEN
+                       printf('%dh %dm', 
+                              (strftime('%s', a.time_out) - strftime('%s', a.time_in)) / 3600,
+                              ((strftime('%s', a.time_out) - strftime('%s', a.time_in)) / 60) % 60
+                             )
+                     ELSE
+                       printf('%dm', (strftime('%s', a.time_out) - strftime('%s', a.time_in)) / 60)
+                   END
+                 ELSE '-'
+               END as duration,
+               u.username, u.first_name, u.last_name, u.email, u.role
+        FROM attendance a
+        INNER JOIN users u ON a.user_id = u.id
+        WHERE a.user_id = ?
+        ORDER BY a.created_at DESC
+    '''
+    
+    cursor.execute(query, (user_id,))
+    rows = cursor.fetchall()
+    
     records = [dict(row) for row in rows]
     conn.close()
     return records
