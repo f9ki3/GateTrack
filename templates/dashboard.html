@@ -16,79 +16,282 @@ block extra_css %}
 </style>
 {% endblock %} {% block content %}
 
-<!-- Welcome Section -->
-<div class="row mb-4">
-  <div class="col-12 col-md-6">
-    <div class="card border-0 shadow-sm">
-      <div class="card-body">
-        <h2 class="mb-1 text-light">
-          Welcome back, {{ session.get('first_name') }}!
-        </h2>
-        <p class="text-secondary">
-          Here's what's happening with your access control system today.
-        </p>
-      </div>
-    </div>
-  </div>
+<style>
+  .dashboard-card {
+    height: 100%;
+    border: 0 !important;
+    border-radius: 1.5rem !important;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+    background: #1f1f1f;
+    overflow: hidden;
+  }
 
-  <div class="col-12 col-md-3">
-    <div class="card border-0 shadow-sm">
+  .dashboard-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
+    transition: all 0.3s ease;
+  }
+
+  .dashboard-card .card-body {
+    padding: 1.25rem;
+  }
+
+  .welcome-card .card-body,
+  .top-info-card .card-body,
+  .stats-card .card-body {
+    display: flex;
+    align-items: center;
+    height: 100%;
+  }
+
+  .welcome-text h2 {
+    font-size: clamp(1.35rem, 2vw, 2rem);
+    line-height: 1.2;
+  }
+
+  .welcome-text p,
+  .card-label {
+    font-size: 0.95rem;
+    margin-bottom: 0.25rem;
+  }
+
+  .live-clock {
+    font-size: clamp(1.25rem, 2vw, 1.75rem);
+    font-weight: 700;
+    line-height: 1.1;
+  }
+
+  .date-text {
+    font-size: 0.85rem;
+  }
+
+  .status-badge {
+    font-size: 0.95rem !important;
+    padding: 0.55rem 0.85rem;
+    border-radius: 999px;
+  }
+
+  .stats-card h3,
+  .top-info-card h3 {
+    font-size: clamp(1.2rem, 1.8vw, 1.7rem);
+    font-weight: 700;
+  }
+
+  .stats-icon {
+    width: 48px;
+    height: 48px;
+    min-width: 48px;
+    border-radius: 20px !important;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+  }
+
+  .stats-card .card-body,
+  .top-info-card .card-body {
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  .stats-content,
+  .top-info-content {
+    min-width: 0;
+  }
+
+  .stats-content p,
+  .top-info-content p {
+    margin-bottom: 0.25rem;
+  }
+
+  .stats-content h3,
+  .top-info-content h3 {
+    margin-bottom: 0;
+  }
+
+  @media (max-width: 767.98px) {
+    .dashboard-card .card-body {
+      padding: 1rem;
+    }
+
+    .stats-icon {
+      width: 42px;
+      height: 42px;
+      min-width: 42px;
+    }
+
+    .welcome-text p,
+    .card-label,
+    .date-text,
+    .top-info-content .small {
+      font-size: 0.82rem;
+    }
+
+    .status-badge {
+      font-size: 0.85rem !important;
+    }
+  }
+</style>
+
+<!-- Welcome / Top Summary -->
+<div class="row g-3 mb-4">
+  <div class="col-12 col-xl-6 col-lg-12">
+    <div class="card dashboard-card welcome-card">
       <div class="card-body">
-        <div class="d-flex justify-content-between align-items-center">
-          <div>
-            <p class="text-secondary mb-1">Date Time</p>
-            <h3 class="mb-0" id="live-clock">Loading...</h3>
-            <p class="text-muted small mb-0" id="date-display"></p>
-          </div>
+        <div class="welcome-text">
+          <h2 class="mb-2 fw-bolder text-light">
+            Welcome back, {{ session.get('first_name') }}!
+          </h2>
+          <p class="text-secondary mb-0">
+            Here's what's happening with your access control system today.
+          </p>
         </div>
       </div>
     </div>
   </div>
-  <div class="col-12 col-md-3">
-    <div class="card border-0 shadow-sm">
+
+  <div class="col-12 col-md-6 col-xl-3">
+    <div class="card dashboard-card top-info-card">
       <div class="card-body">
-        <div class="d-flex justify-content-between align-items-center">
-          <div>
-            <p class="text-secondary mb-1">Laboratory Status</p>
-            <h3 class="mb-0">
-              <span
-                class="badge fs-5 {% if lab_status == 'Available' %}bg-success{% else %}bg-danger{% endif %}"
-              >
-                {{ lab_status }}
-              </span>
-            </h3>
-            <p class="text-muted small mb-0">
-              {{ teachers_present }} teachers present
-            </p>
-          </div>
-          <div
-            class="stats-icon {% if lab_status == 'Available' %}bg-success{% else %}bg-danger{% endif %}"
-          >
-            <i
-              class="bi {% if lab_status == 'Available' %}bi-door-open{% else %}bi-door-closed{% endif %} fs-4"
-            ></i>
-          </div>
+        <div class="top-info-content">
+          <p class="text-secondary card-label">Date Time</p>
+          <h3 class="mb-1 live-clock text-light" id="live-clock">Loading...</h3>
+          <p class="text-muted date-text mb-0" id="date-display"></p>
+        </div>
+        <div class="stats-icon bg-primary">
+          <i class="bi bi-clock fs-4"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12 col-md-6 col-xl-3">
+    <div class="card dashboard-card top-info-card">
+      <div class="card-body">
+        <div class="top-info-content">
+          <p class="text-secondary card-label">Laboratory Status</p>
+          <h3 class="mb-1">
+            <span
+              class="badge status-badge {% if lab_status == 'Available' %}bg-success{% else %}bg-danger{% endif %}"
+            >
+              {{ lab_status }}
+            </span>
+          </h3>
+          <p class="text-muted small mb-0">
+            {{ teachers_present }} teachers present
+          </p>
+        </div>
+        <div
+          class="stats-icon {% if lab_status == 'Available' %}bg-success{% else %}bg-danger{% endif %}"
+        >
+          <i
+            class="bi {% if lab_status == 'Available' %}bi-door-open{% else %}bi-door-closed{% endif %} fs-4"
+          ></i>
         </div>
       </div>
     </div>
   </div>
 </div>
 
-<!-- Live Clock Script -->
+<!-- Stats Cards -->
+<div class="row g-3 mb-4">
+  <div class="col-12 col-sm-6 col-lg-4 col-xl-2">
+    <div class="card dashboard-card stats-card">
+      <div class="card-body">
+        <div class="stats-content">
+          <p class="text-secondary card-label">Total Users</p>
+          <h3 class="text-light">{{ user_count }}</h3>
+        </div>
+        <div class="stats-icon bg-primary">
+          <i class="bi bi-people fs-4"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12 col-sm-6 col-lg-4 col-xl-2">
+    <div class="card dashboard-card stats-card">
+      <div class="card-body">
+        <div class="stats-content">
+          <p class="text-secondary card-label">Super Admins</p>
+          <h3 class="text-light">{{ super_admin_count }}</h3>
+        </div>
+        <div class="stats-icon bg-primary">
+          <i class="bi bi-shield-lock fs-4"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12 col-sm-6 col-lg-4 col-xl-2">
+    <div class="card dashboard-card stats-card">
+      <div class="card-body">
+        <div class="stats-content">
+          <p class="text-secondary card-label">Teachers</p>
+          <h3 class="text-light">{{ teacher_count }}</h3>
+        </div>
+        <div class="stats-icon bg-primary">
+          <i class="bi bi-person-badge fs-4"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12 col-sm-6 col-lg-4 col-xl-2">
+    <div class="card dashboard-card stats-card">
+      <div class="card-body">
+        <div class="stats-content">
+          <p class="text-secondary card-label">Staff</p>
+          <h3 class="text-light">{{ staff_count }}</h3>
+        </div>
+        <div class="stats-icon bg-primary">
+          <i class="bi bi-person-gear fs-4"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12 col-sm-6 col-lg-4 col-xl-2">
+    <div class="card dashboard-card stats-card">
+      <div class="card-body">
+        <div class="stats-content">
+          <p class="text-secondary card-label">Technicians</p>
+          <h3 class="text-light">{{ technician_count }}</h3>
+        </div>
+        <div class="stats-icon bg-primary">
+          <i class="bi bi-tools fs-4"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12 col-sm-6 col-lg-4 col-xl-2">
+    <div class="card dashboard-card stats-card">
+      <div class="card-body">
+        <div class="stats-content">
+          <p class="text-secondary card-label">Guests</p>
+          <h3 class="text-light">{{ guest_count }}</h3>
+        </div>
+        <div class="stats-icon bg-primary">
+          <i class="bi bi-person fs-4"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 
 <script>
   function updateClock() {
     const now = new Date();
 
-    // Time in 12hr format with AM/PM
     let hours = now.getHours();
     const minutes = now.getMinutes().toString().padStart(2, "0");
-    const ampm = hours >= 12 ? "pm" : "am";
-    hours = hours % 12;
-    hours = hours ? hours : 12;
-    const timeStr = hours + ":" + minutes + ampm;
+    const seconds = now.getSeconds().toString().padStart(2, "0");
+    const ampm = hours >= 12 ? "PM" : "AM";
+    hours = hours % 12 || 12;
 
-    // Date
+    const timeStr = `${hours}:${minutes}:${seconds} ${ampm}`;
+
     const days = [
       "Sunday",
       "Monday",
@@ -98,6 +301,7 @@ block extra_css %}
       "Friday",
       "Saturday",
     ];
+
     const months = [
       "January",
       "February",
@@ -112,112 +316,16 @@ block extra_css %}
       "November",
       "December",
     ];
-    const dayName = days[now.getDay()];
-    const monthName = months[now.getMonth()];
-    const dayNum = now.getDate();
-    const year = now.getFullYear();
-    const dateStr = dayName + ", " + monthName + ", " + dayNum + ", " + year;
+
+    const dateStr = `${days[now.getDay()]}, ${months[now.getMonth()]} ${now.getDate()}, ${now.getFullYear()}`;
 
     document.getElementById("live-clock").textContent = timeStr;
     document.getElementById("date-display").textContent = dateStr;
   }
+
   updateClock();
   setInterval(updateClock, 1000);
 </script>
-
-<!-- Stats Cards - 2 columns on mobile, 6 on desktop -->
-<div class="row mb-4">
-  <div class="col-6 col-md-2">
-    <div class="card stats-card">
-      <div class="card-body">
-        <div class="d-flex justify-content-between align-items-center">
-          <div>
-            <p class="text-secondary mb-1">Total Users</p>
-            <h3 class="mb-0">{{ user_count }}</h3>
-          </div>
-          <div class="stats-icon bg-primary">
-            <i class="bi bi-people fs-4"></i>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-  <div class="col-6 col-md-2">
-    <div class="card stats-card">
-      <div class="card-body">
-        <div class="d-flex justify-content-between align-items-center">
-          <div>
-            <p class="text-secondary mb-1">Super Admins</p>
-            <h3 class="mb-0">{{ super_admin_count }}</h3>
-          </div>
-          <div class="stats-icon bg-primary">
-            <i class="bi bi-shield-lock fs-4"></i>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-  <div class="col-6 col-md-2">
-    <div class="card stats-card">
-      <div class="card-body">
-        <div class="d-flex justify-content-between align-items-center">
-          <div>
-            <p class="text-secondary mb-1">Teachers</p>
-            <h3 class="mb-0">{{ teacher_count }}</h3>
-          </div>
-          <div class="stats-icon bg-primary">
-            <i class="bi bi-person-badge fs-4"></i>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-  <div class="col-6 col-md-2">
-    <div class="card stats-card">
-      <div class="card-body">
-        <div class="d-flex justify-content-between align-items-center">
-          <div>
-            <p class="text-secondary mb-1">Staff</p>
-            <h3 class="mb-0">{{ staff_count }}</h3>
-          </div>
-          <div class="stats-icon bg-primary">
-            <i class="bi bi-person-gear fs-4"></i>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-  <div class="col-6 col-md-2">
-    <div class="card stats-card">
-      <div class="card-body">
-        <div class="d-flex justify-content-between align-items-center">
-          <div>
-            <p class="text-secondary mb-1">Technicians</p>
-            <h3 class="mb-0">{{ technician_count }}</h3>
-          </div>
-          <div class="stats-icon bg-primary">
-            <i class="bi bi-tools fs-4"></i>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-  <div class="col-6 col-md-2">
-    <div class="card stats-card">
-      <div class="card-body">
-        <div class="d-flex justify-content-between align-items-center">
-          <div>
-            <p class="text-secondary mb-1">Guests</p>
-            <h3 class="mb-0">{{ guest_count }}</h3>
-          </div>
-          <div class="stats-icon bg-primary">
-            <i class="bi bi-person fs-4"></i>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
 
 <!-- Recent Activity / User Table -->
 <div class="row">
@@ -226,11 +334,11 @@ block extra_css %}
       <div
         class="card-header d-flex justify-content-between align-items-center"
       >
-        <h5 class="mb-0"><i class="bi bi-table me-2"></i>System Users</h5>
+        <h5 class="my-3">Recently Added</h5>
       </div>
       <div class="card-body">
         <div class="table-responsive">
-          <table class="table table-hover">
+          <table class="table">
             <thead>
               <tr>
                 <th>ID</th>
