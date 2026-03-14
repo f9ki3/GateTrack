@@ -238,11 +238,12 @@
         <tbody id="tableBody">
           {% if records %}
             {% for record in records %}
+            {% if record.username or record.email or record.first_name or record.last_name %}
             <tr>
               <td class="py-3">{{ record.id }}</td>
               <td class="py-3">
                 <div class="d-flex align-items-center">
-                  {{ record.first_name or '' }} {{ record.last_name or '' }} {{ record.username or record.email or 'Unknown' }}
+                  {{ record.username or record.email or 'Unknown' }}
                 </div>
               </td>
 
@@ -260,20 +261,21 @@
               <td class="py-3">{{ record.created_at[:10] if record.created_at else '-' }}</td>
               <td class="py-3">
                 {% if record.time_in %}
-                  <span class="text-success-light"><i class="bi bi-arrow-right-circle me-1"></i>{{ record.time_in.split(' ')[1] }}</span>
+                  <span class="text-success-light"><i class="bi bi-arrow-right-circle me-1"></i>{{ (record.time_in.split(' ')[1] if record.time_in else '')|format_time_12hr }}</span>
                 {% else %}
                   <span class="text-muted">-</span>
                 {% endif %}
               </td>
               <td class="py-3">
                 {% if record.time_out %}
-                  <span class="text-danger-light"><i class="bi bi-arrow-left-circle me-1"></i>{{ record.time_out.split(' ')[1] }}</span>
+                  <span class="text-danger-light"><i class="bi bi-arrow-left-circle me-1"></i>{{ (record.time_out.split(' ')[1] if record.time_out else '')|format_time_12hr }}</span>
                 {% else %}
                   <span class="badge badge-pending">Pending</span>
                 {% endif %}
               </td>
               <td class="py-3">{{ record.duration or '-' }}</td>
             </tr>
+            {% endif %}
             {% endfor %}
           {% else %}
             <tr>

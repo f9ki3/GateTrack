@@ -328,15 +328,31 @@ def export_users_csv_data(search_term: str = '', role_filter: str = '', limit: i
 
 
 def export_attendance_csv_data(role_filter: str = '', date_from: str = None, date_to: str = None) -> List[dict]:
-    """Get attendance data joined with users for CSV export. Returns list of dicts."""
+    """Get attendance data joined with users for CSV export - only known users with duration. Returns list of dicts."""
     conn = get_connection()
     cursor = conn.cursor()
     
     query = '''
-        SELECT a.id, a.user_id, a.time_in, a.time_out, a.created_at,
-               u.email, u.username, u.first_name, u.last_name, u.role, u.rfid
+        SELECT a.id, 
+               date(a.created_at) as date,
+               substr(a.time_in, 12, 8) as time_in, 
+               substr(a.time_out, 12, 8) as time_out,
+               CASE 
+                 WHEN a.time_out IS NOT NULL AND a.time_in IS NOT NULL THEN
+                   CASE 
+                     WHEN strftime('%s', a.time_out) - strftime('%s', a.time_in) >= 3600 THEN
+                       printf('%dh %dm', 
+                              (strftime('%s', a.time_out) - strftime('%s', a.time_in)) / 3600,
+                              ((strftime('%s', a.time_out) - strftime('%s', a.time_in)) / 60) % 60
+                             )
+                     ELSE
+                       printf('%dm', (strftime('%s', a.time_out) - strftime('%s', a.time_in)) / 60)
+                   END
+                 ELSE '-'
+               END as duration,
+               u.username, u.first_name, u.last_name, u.email, u.role
         FROM attendance a
-        LEFT JOIN users u ON a.user_id = u.id
+        INNER JOIN users u ON a.user_id = u.id AND (u.username IS NOT NULL OR u.email IS NOT NULL OR u.first_name IS NOT NULL OR u.last_name IS NOT NULL)
     '''
     params = []
     where_conditions = []
@@ -391,16 +407,17 @@ def get_paginated_attendance(page: int = 1, per_page: int = 10, search_term: str
     
     where_clause = 'WHERE ' + ' AND '.join(where_conditions) if where_conditions else ''
     
-    # Count total
+    # Count total - only records with known users
     count_query = f'''
         SELECT COUNT(*) FROM attendance a
-        LEFT JOIN users u ON a.user_id = u.id
+        INNER JOIN users u ON a.user_id = u.id AND (u.username IS NOT NULL OR u.email IS NOT NULL OR u.first_name IS NOT NULL OR u.last_name IS NOT NULL)
         {where_clause}
     '''
     cursor.execute(count_query, params)
     total_count = cursor.fetchone()[0]
     
-    # Paginated query with duration calculation
+    # Paginated query with duration calculation - only known users
+    # Paginated query with duration calculation - only known users
     paginated_query = f'''
         SELECT a.id, a.user_id, a.time_in, a.time_out, a.created_at,
                COALESCE(u.first_name, '') as first_name,
@@ -420,7 +437,7 @@ def get_paginated_attendance(page: int = 1, per_page: int = 10, search_term: str
                  ELSE '-'
                END as duration
         FROM attendance a
-        LEFT JOIN users u ON a.user_id = u.id
+        INNER JOIN users u ON a.user_id = u.id AND (u.username IS NOT NULL OR u.email IS NOT NULL OR COALESCE(u.first_name, '') != '' OR COALESCE(u.last_name, '') != '')
         {where_clause}
         ORDER BY a.created_at DESC
         LIMIT ? OFFSET ?

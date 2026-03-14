@@ -9,6 +9,18 @@ from datetime import datetime, date
 app = Flask(__name__)
 app.secret_key = 'gatetrack_secret_key_2024'  # Change this in production
 
+def format_time_12hr(time_str):
+    """Convert 24-hour 'HH:MM:SS' to 12-hour 'hh:mm AM/PM'."""
+    if not time_str:
+        return ''
+    try:
+        dt = datetime.strptime(time_str, '%H:%M:%S')
+        return dt.strftime('%I:%M %p')
+    except (ValueError, TypeError):
+        return time_str or ''
+
+app.jinja_env.filters['format_time_12hr'] = format_time_12hr
+
 # Database path
 DB_PATH = 'instance/gatetrack.db'
 
@@ -372,14 +384,14 @@ def delete_user_route(user_id):
 # ==================== Attendance Functions ====================
 
 def get_all_attendance():
-    """Get all attendance records with user info."""
+    """Get all attendance records with user info - only known users."""
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute('''
         SELECT a.id, a.user_id, a.time_in, a.time_out, a.created_at,
-               u.email, u.username, u.role
+               u.email, u.username, u.role, u.first_name, u.last_name
         FROM attendance a
-        LEFT JOIN users u ON a.user_id = u.id
+        INNER JOIN users u ON a.user_id = u.id AND (u.username IS NOT NULL OR u.email IS NOT NULL OR u.first_name IS NOT NULL OR u.last_name IS NOT NULL)
         ORDER BY a.created_at DESC
     ''')
     records = cursor.fetchall()
@@ -715,8 +727,7 @@ def export_attendance_csv():
     # Create CSV
     output = StringIO()
     writer = csv.DictWriter(output, fieldnames=[
-        'id', 'user_id', 'email', 'username', 'first_name', 'last_name', 
-        'role', 'rfid', 'time_in', 'time_out', 'created_at'
+        'id', 'username', 'first_name', 'last_name', 'email', 'date', 'time_in', 'time_out', 'duration', 'role'
     ])
     writer.writeheader()
     writer.writerows(attendance_data)
