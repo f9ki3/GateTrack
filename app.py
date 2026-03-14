@@ -98,6 +98,7 @@ def login():
             # Set session variables
             session['user_id'] = user['id']
             session['email'] = user['email']
+            session['contact'] = user['contact']
             session['last_name'] = user['last_name']
             session['first_name'] = user['first_name']
             session['username'] = user['username']
