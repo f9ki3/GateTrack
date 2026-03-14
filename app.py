@@ -98,6 +98,8 @@ def login():
             # Set session variables
             session['user_id'] = user['id']
             session['email'] = user['email']
+            session['last_name'] = user['last_name']
+            session['first_name'] = user['first_name']
             session['username'] = user['username']
             session['role'] = user['role']
             
@@ -125,11 +127,19 @@ def logout():
 def dashboard():
     # Get user statistics
     user_count = get_user_count_by_role()
+
     super_admin_count = get_user_count_by_role('super_admin')
     teacher_count = get_user_count_by_role('teacher')
     staff_count = get_user_count_by_role('staff')
     technician_count = get_user_count_by_role('technician')
     guest_count = get_user_count_by_role('guest')
+    
+
+    # Laboratory status
+    from database_utils import get_today_attendance_count, get_teachers_currently_present
+    teachers_present = get_teachers_currently_present()
+    lab_status = 'Available' if teachers_present > 0 else 'Not Available'
+
     
     # Get all users (for admin/teacher view)
     users = get_all_users()
@@ -142,8 +152,13 @@ def dashboard():
         staff_count=staff_count,
         technician_count=technician_count,
         guest_count=guest_count,
-        users=users
+
+        users=users,
+        teachers_present=teachers_present,
+        lab_status=lab_status
+
     )
+
 
 @app.route('/users')
 @login_required

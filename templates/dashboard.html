@@ -13,32 +13,117 @@ block extra_css %}
   .bg-primary {
     background-color: #3354f4 !important;
   }
-  .bg-success {
-    background-color: #28a745 !important;
-  }
-  .bg-info {
-    background-color: #17a2b8 !important;
-  }
-  .bg-warning {
-    background-color: #ffc107 !important;
-    color: #000 !important;
-  }
-  .bg-danger {
-    background-color: #dc3545 !important;
-  }
 </style>
 {% endblock %} {% block content %}
+
 <!-- Welcome Section -->
 <div class="row mb-4">
-  <div class="col-12">
-    <h2 class="mb-1">
-      Welcome back, {{ session.get('username') or session.get('email') }}!
-    </h2>
-    <p class="text-secondary">
-      Here's what's happening with your access control system today.
-    </p>
+  <div class="col-12 col-md-6">
+    <div class="card border-0 shadow-sm">
+      <div class="card-body">
+        <h2 class="mb-1 text-light">
+          Welcome back, {{ session.get('first_name') }}!
+        </h2>
+        <p class="text-secondary">
+          Here's what's happening with your access control system today.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12 col-md-3">
+    <div class="card border-0 shadow-sm">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <p class="text-secondary mb-1">Date Time</p>
+            <h3 class="mb-0" id="live-clock">Loading...</h3>
+            <p class="text-muted small mb-0" id="date-display"></p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-12 col-md-3">
+    <div class="card border-0 shadow-sm">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <p class="text-secondary mb-1">Laboratory Status</p>
+            <h3 class="mb-0">
+              <span
+                class="badge fs-5 {% if lab_status == 'Available' %}bg-success{% else %}bg-danger{% endif %}"
+              >
+                {{ lab_status }}
+              </span>
+            </h3>
+            <p class="text-muted small mb-0">
+              {{ teachers_present }} teachers present
+            </p>
+          </div>
+          <div
+            class="stats-icon {% if lab_status == 'Available' %}bg-success{% else %}bg-danger{% endif %}"
+          >
+            <i
+              class="bi {% if lab_status == 'Available' %}bi-door-open{% else %}bi-door-closed{% endif %} fs-4"
+            ></i>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
+
+<!-- Live Clock Script -->
+
+<script>
+  function updateClock() {
+    const now = new Date();
+
+    // Time in 12hr format with AM/PM
+    let hours = now.getHours();
+    const minutes = now.getMinutes().toString().padStart(2, "0");
+    const ampm = hours >= 12 ? "pm" : "am";
+    hours = hours % 12;
+    hours = hours ? hours : 12;
+    const timeStr = hours + ":" + minutes + ampm;
+
+    // Date
+    const days = [
+      "Sunday",
+      "Monday",
+      "Tuesday",
+      "Wednesday",
+      "Thursday",
+      "Friday",
+      "Saturday",
+    ];
+    const months = [
+      "January",
+      "February",
+      "March",
+      "April",
+      "May",
+      "June",
+      "July",
+      "August",
+      "September",
+      "October",
+      "November",
+      "December",
+    ];
+    const dayName = days[now.getDay()];
+    const monthName = months[now.getMonth()];
+    const dayNum = now.getDate();
+    const year = now.getFullYear();
+    const dateStr = dayName + ", " + monthName + ", " + dayNum + ", " + year;
+
+    document.getElementById("live-clock").textContent = timeStr;
+    document.getElementById("date-display").textContent = dateStr;
+  }
+  updateClock();
+  setInterval(updateClock, 1000);
+</script>
 
 <!-- Stats Cards - 2 columns on mobile, 6 on desktop -->
 <div class="row mb-4">
@@ -65,7 +150,7 @@ block extra_css %}
             <p class="text-secondary mb-1">Super Admins</p>
             <h3 class="mb-0">{{ super_admin_count }}</h3>
           </div>
-          <div class="stats-icon bg-danger">
+          <div class="stats-icon bg-primary">
             <i class="bi bi-shield-lock fs-4"></i>
           </div>
         </div>
@@ -80,7 +165,7 @@ block extra_css %}
             <p class="text-secondary mb-1">Teachers</p>
             <h3 class="mb-0">{{ teacher_count }}</h3>
           </div>
-          <div class="stats-icon bg-success">
+          <div class="stats-icon bg-primary">
             <i class="bi bi-person-badge fs-4"></i>
           </div>
         </div>
@@ -95,7 +180,7 @@ block extra_css %}
             <p class="text-secondary mb-1">Staff</p>
             <h3 class="mb-0">{{ staff_count }}</h3>
           </div>
-          <div class="stats-icon bg-warning">
+          <div class="stats-icon bg-primary">
             <i class="bi bi-person-gear fs-4"></i>
           </div>
         </div>
@@ -125,7 +210,7 @@ block extra_css %}
             <p class="text-secondary mb-1">Guests</p>
             <h3 class="mb-0">{{ guest_count }}</h3>
           </div>
-          <div class="stats-icon bg-warning">
+          <div class="stats-icon bg-primary">
             <i class="bi bi-person fs-4"></i>
           </div>
         </div>

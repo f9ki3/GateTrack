@@ -4,8 +4,10 @@ This file demonstrates how to INSERT and ACCESS data using sqlite3 directly.
 """
 
 import sqlite3
-from datetime import datetime
+
+from datetime import datetime, date
 from typing import Optional, List, Tuple, Any
+
 
 # Database path
 DB_PATH = 'instance/gatetrack.db'
@@ -493,7 +495,37 @@ def get_paginated_attendance(page: int = 1, per_page: int = 10, search_term: str
 
 # ==================== EXAMPLE USAGE ====================
 
+
+
+def get_today_attendance_count() -> int:
+    """Get count of today's attendance records."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    today = date.today().strftime('%Y-%m-%d')
+    cursor.execute('SELECT COUNT(*) FROM attendance WHERE date(created_at) = ?', (today,))
+    count = cursor.fetchone()[0]
+    conn.close()
+    return count
+
+
+def get_teachers_currently_present() -> int:
+    """Get count of teachers currently present (time_in today, no time_out)."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    today = date.today().strftime('%Y-%m-%d')
+    cursor.execute('''
+        SELECT COUNT(*) FROM attendance a
+        JOIN users u ON a.user_id = u.id
+        WHERE date(a.created_at) = ? AND u.role = 'teacher' AND a.time_out IS NULL
+    ''', (today,))
+    count = cursor.fetchone()[0]
+    conn.close()
+    return count
+
+
+
 if __name__ == "__main__":
+
     # Example: Insert a new user
     new_user_data = {
         'username': 'johndoe',
