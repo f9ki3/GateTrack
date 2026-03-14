@@ -97,8 +97,7 @@
         </select>
 
         <!-- Credentials for certain roles -->
-        <div id="credentialsSection" style="display: none;" class="alert alert-info mb-3">
-          <h6>Login Credentials <span class="text-danger">*</span></h6>
+        <div id="credentialsSection" style="display: none;" class="mb-3">
           <div class="row">
             <div class="col-md-6 mb-3">
               <label for="username" class="form-label">Username</label>
@@ -108,7 +107,7 @@
               <label for="password" class="form-label">Password</label>
               <div class="input-group">
                 <input type="password" class="form-control" id="password" name="password">
-                <button class="btn btn-outline-secondary" type="button" id="togglePassword">
+                <button class="btn border-top border-end border-bottom" type="button" id="togglePassword">
                   <i class="bi bi-eye" id="toggleIcon"></i>
                 </button>
               </div>
@@ -116,23 +115,28 @@
           </div>
         </div>
 
-        <label for="first_name" class="form-label">First Name</label>
-        <input type="text" class="form-control mb-3" id="first_name" name="first_name">
-
-        <label for="last_name" class="form-label">Last Name</label>
-        <input type="text" class="form-control mb-3" id="last_name" name="last_name">
+        <div class="row">
+          <div class="col-6">
+            <label for="first_name" class="form-label">First Name</label>
+            <input type="text" placeholder="Juan" class="form-control mb-3" id="first_name" name="first_name">
+          </div>
+          <div class="col-6">
+            <label for="last_name" class="form-label">Last Name</label>
+            <input type="text" placeholder="Dela Cruz" class="form-control mb-3" id="last_name" name="last_name">
+          </div>
+        </div>
 
         <label for="email" class="form-label">Email <span class="text-danger">*</span></label>
-        <input type="email" class="form-control mb-3" id="email" name="email" required>
+        <input type="email" placeholder="juan@gmail.com" class="form-control mb-3" id="email" name="email" required>
 
         <label for="contact" class="form-label">Contact</label>
-        <input type="text" class="form-control mb-3" id="contact" name="contact">
+        <input type="text" placeholder="09XXXXXXXXXXXX" class="form-control mb-3" id="contact" name="contact">
 
         <label for="rfid" class="form-label fw-bold">RFID Tag <span class="text-danger">*</span></label>
         <input type="text" class="form-control mb-4" id="rfid" name="rfid" required placeholder="Scan or enter RFID">
 
         <div class="d-flex gap-2">
-          <button type="button" class="btn btn-secondary flex-fill" data-bs-dismiss="offcanvas">Cancel</button>
+          <!-- <button type="button" class="btn btn-secondary flex-fill" data-bs-dismiss="offcanvas">Cancel</button> -->
           <button type="submit" class="btn btn-primary flex-fill">Add User</button>
         </div>
       </div>
