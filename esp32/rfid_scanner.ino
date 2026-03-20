@@ -28,7 +28,7 @@ const int SERVER_PORT = 5000;
 MFRC522 rfid(SS_PIN, RST_PIN);
 
 // ================= LCD I2C =================
-LiquidCrystal_I2C lcd(0x27, 16, 2);
+LiquidCrystal_I2C lcd(0x27, 16, 2); // SDA = 21, SCL = 4 (Set below in Wire.begin)
 
 // ================= Buzzer =================
 #define BUZZER_PIN 27
@@ -41,15 +41,15 @@ LiquidCrystal_I2C lcd(0x27, 16, 2);
 // ================= Button Pins =================
 // Wire each button from GPIO pin to GND
 // Using INPUT_PULLUP = pressed means LOW
-#define BTN_MODE1 12
-#define BTN_MODE2 14
-#define BTN_MODE3 25
-#define BTN_RESET 33
+#define BTN_MODE1 33
+#define BTN_MODE2 25
+#define BTN_MODE3 14
+#define BTN_MODE4 15   // <--- 5TH BUTTON (Mode 4: Access Check)
+#define BTN_RESET 12
 
 #define DEBOUNCE_DELAY 180
 
 // ================= Stepper Motor (28BYJ-48 + ULN2003) =================
-// IMPORTANT: GPIO35 is INPUT ONLY on ESP32, so do not use it for stepper output.
 #define STEPPER_IN1 16
 #define STEPPER_IN2 17
 #define STEPPER_IN3 32
@@ -57,17 +57,18 @@ LiquidCrystal_I2C lcd(0x27, 16, 2);
 
 #define STEPS_PER_REV 2048
 
-Stepper doorStepper(STEPS_PER_REV, STEPPER_IN1, STEPPER_IN3, STEPPER_IN2, STEPPER_IN4);
+Stepper doorStepper(STEPS_PER_REV, STEPPER_IN4, STEPPER_IN2, STEPPER_IN3, STEPPER_IN1);
 
 // Adjust these for your actual sliding mechanism
-int STEPPER_SPEED_RPM = 12;   // safe start speed for 28BYJ
-int DOOR_OPEN_STEPS   = 2800;  // calibrate this for your slide distance
+int STEPPER_SPEED_RPM = 18;  
+int DOOR_OPEN_STEPS   = 4000;  
 
 // ================= Mode Configuration =================
 int currentMode = 1;
 // 1 = Manual door toggle by button only
-// 2 = Time In  (RFID -> validate -> attendance success -> light ON  -> door open 5s -> close)
-// 3 = Time Out (RFID -> validate -> attendance success -> light OFF -> door open 5s -> close)
+// 2 = Time In  (RFID -> validate -> light ON  -> door open 5s -> close)
+// 3 = Time Out (RFID -> validate -> light OFF -> door open 5s -> close)
+// 4 = Access   (RFID -> validate -> door open 5s -> close)
 
 // ================= State Variables =================
 bool doorIsOpen = false;
@@ -80,7 +81,8 @@ String lastCardUID = "";
 unsigned long lastBtn1Press = 0;
 unsigned long lastBtn2Press = 0;
 unsigned long lastBtn3Press = 0;
-unsigned long lastBtn4Press = 0;
+unsigned long lastBtn4Press = 0;     // For the new Mode 4 button
+unsigned long lastBtnResetPress = 0; // For the Reset button
 
 // ================= RFID Re-initialization =================
 void reinitRFID() {
@@ -112,13 +114,8 @@ void showLCD(const String& line1, const String& line2 = "") {
 }
 
 // ================= Buzzer Functions =================
-void buzzerOn() {
-  digitalWrite(BUZZER_PIN, HIGH);
-}
-
-void buzzerOff() {
-  digitalWrite(BUZZER_PIN, LOW);
-}
+void buzzerOn() { digitalWrite(BUZZER_PIN, HIGH); }
+void buzzerOff() { digitalWrite(BUZZER_PIN, LOW); }
 
 void beepOnce(int durationMs = 120) {
   buzzerOn();
@@ -127,16 +124,12 @@ void beepOnce(int durationMs = 120) {
 }
 
 void beepTwice() {
-  beepOnce(100);
-  delay(100);
-  beepOnce(100);
+  beepOnce(100); delay(100); beepOnce(100);
 }
 
 void beepError() {
-  beepOnce(150);
-  delay(100);
-  beepOnce(150);
-  delay(100);
+  beepOnce(150); delay(100);
+  beepOnce(150); delay(100);
   beepOnce(150);
 }
 
@@ -194,17 +187,12 @@ void connectWiFi() {
 
   if (WiFi.status() == WL_CONNECTED) {
     wifiConnected = true;
-    Serial.println();
-    Serial.println(">>> WiFi Connected!");
-    Serial.print(">>> IP: ");
-    Serial.println(WiFi.localIP());
-
+    Serial.println("\n>>> WiFi Connected! IP: " + WiFi.localIP().toString());
     showLCD("WiFi Connected!", WiFi.localIP().toString().substring(0, 16));
     delay(2000);
   } else {
     wifiConnected = false;
-    Serial.println();
-    Serial.println(">>> WiFi Failed!");
+    Serial.println("\n>>> WiFi Failed!");
     showLCD("WiFi Failed!", "");
     delay(2000);
   }
@@ -242,40 +230,26 @@ bool checkWiFiConnection() {
     delay(1500);
     return true;
   }
-
-  Serial.println(">>> WiFi reconnection failed");
   return false;
 }
 
 // ================= Door Functions =================
 void openDoor(String reason) {
-  if (doorIsOpen) {
-    Serial.println(">>> Door already open");
-    return;
-  }
-
+  if (doorIsOpen) return;
   Serial.println(">>> DOOR OPEN: " + reason);
   showLCD("Door Opening...", reason);
   beepOnce(100);
-
   stepperOpenDoor();
-
   doorIsOpen = true;
   showLCD("Door OPEN", reason);
 }
 
 void closeDoor(String reason) {
-  if (!doorIsOpen) {
-    Serial.println(">>> Door already closed");
-    return;
-  }
-
+  if (!doorIsOpen) return;
   Serial.println(">>> DOOR CLOSE: " + reason);
   showLCD("Door Closing...", reason);
   beepOnce(100);
-
   stepperCloseDoor();
-
   doorIsOpen = false;
   showLCD("Door CLOSED", reason);
 }
@@ -286,44 +260,26 @@ void toggleDoor() {
   } else {
     openDoor("Manual Toggle");
   }
-
   delay(600);
-
-  if (doorIsOpen) {
-    showLCD("Mode 1: Manual", "Door OPEN");
-  } else {
-    showLCD("Mode 1: Manual", "Door CLOSED");
-  }
+  showLCD("Mode 1: Manual", doorIsOpen ? "Door OPEN" : "Door CLOSED");
 }
 
 // ================= LCD State =================
 void showCurrentMode() {
   if (currentMode == 1) {
-    if (doorIsOpen) {
-      showLCD("Mode 1: Manual", "Press Btn1 Close");
-    } else {
-      showLCD("Mode 1: Manual", "Press Btn1 Open");
-    }
+    showLCD("Mode 1: Manual", doorIsOpen ? "Press Btn1 Close" : "Press Btn1 Open");
   } else if (currentMode == 2) {
     showLCD("Mode 2: Time In", "Scan RFID");
   } else if (currentMode == 3) {
     showLCD("Mode 3: Time Out", "Scan RFID");
+  } else if (currentMode == 4) {
+    showLCD("Mode 4: Access", "Scan RFID");
   }
 }
 
 void setMode(int newMode) {
   currentMode = newMode;
-
   Serial.println(">>> MODE CHANGED TO: " + String(currentMode));
-
-  if (currentMode == 1) {
-    Serial.println(">>> Mode 1: Manual Toggle Door");
-  } else if (currentMode == 2) {
-    Serial.println(">>> Mode 2: Time In");
-  } else if (currentMode == 3) {
-    Serial.println(">>> Mode 3: Time Out");
-  }
-
   beepOnce(80);
   delay(200);
   showCurrentMode();
@@ -331,9 +287,7 @@ void setMode(int newMode) {
 
 // ================= HTTP Functions =================
 bool parseResponse(String json, String& status, String& message) {
-  status = "";
-  message = "";
-
+  status = ""; message = "";
   if (json.length() < 5) return false;
 
   int statusIdx = json.indexOf("\"status\":\"");
@@ -342,10 +296,7 @@ bool parseResponse(String json, String& status, String& message) {
     statusIdx = json.indexOf("\"status\": \"");
     statusOffset = 11;
   }
-  if (statusIdx == -1) {
-    Serial.println(">>> No status in response");
-    return false;
-  }
+  if (statusIdx == -1) return false;
 
   int statusStart = statusIdx + statusOffset;
   int statusEnd = json.indexOf("\"", statusStart);
@@ -361,13 +312,8 @@ bool parseResponse(String json, String& status, String& message) {
   if (msgIdx != -1) {
     int msgStart = msgIdx + msgOffset;
     int msgEnd = json.indexOf("\"", msgStart);
-    if (msgEnd != -1) {
-      message = json.substring(msgStart, msgEnd);
-    }
+    if (msgEnd != -1) message = json.substring(msgStart, msgEnd);
   }
-
-  Serial.println(">>> Parsed status: " + status);
-  Serial.println(">>> Parsed message: " + message);
   return true;
 }
 
@@ -383,6 +329,12 @@ String sendAttendance(String rfidTag, int mode, String& outStatus, String& outMe
 
   String url = "http://" + String(SERVER_IP) + ":" + String(SERVER_PORT) + "/api/attendance";
   String payload = "{\"rfid\":\"" + rfidTag + "\",\"mode\":" + String(mode) + "}";
+
+  // Mode 4 uses check_users endpoint (no mode parameter)
+  if (mode == 4) {
+    url = "http://" + String(SERVER_IP) + ":" + String(SERVER_PORT) + "/api/check_users";
+    payload = "{\"rfid\":\"" + rfidTag + "\"}";
+  }
 
   Serial.println(">>> Sending to: " + url);
   Serial.println(">>> Payload: " + payload);
@@ -404,7 +356,6 @@ String sendAttendance(String rfidTag, int mode, String& outStatus, String& outMe
       outMessage = "Invalid server response";
     }
   } else {
-    Serial.println(">>> HTTP Error: " + String(httpCode) + " - " + http.errorToString(httpCode));
     outStatus = "error";
     outMessage = "HTTP " + String(httpCode);
     response = "{\"status\":\"error\",\"message\":\"HTTP error\"}";
@@ -422,10 +373,7 @@ void waitForCardRemoval() {
   unsigned long startWait = millis();
   while (millis() - startWait < 5000) {
     handleButtons();
-
-    if (!rfid.PICC_IsNewCardPresent()) {
-      break;
-    }
+    if (!rfid.PICC_IsNewCardPresent()) break;
     delay(100);
   }
 
@@ -449,85 +397,58 @@ void handleDeniedOrError(const String& title, const String& msg) {
 void handleButtons() {
   unsigned long now = millis();
 
-  // BTN 1 = Mode 1 / toggle door if already in mode 1
-  if (digitalRead(BTN_MODE1) == LOW) {
-    if (now - lastBtn1Press > DEBOUNCE_DELAY) {
-      lastBtn1Press = now;
-
-      Serial.println(">>> BUTTON MODE1 PRESSED");
-
-      if (currentMode != 1) {
-        setMode(1);
-      } else {
-        toggleDoor();
-      }
-
-      while (digitalRead(BTN_MODE1) == LOW) {
-        delay(10);
-      }
-    }
+  // BTN 1 = Mode 1 / toggle door
+  if (digitalRead(BTN_MODE1) == LOW && (now - lastBtn1Press > DEBOUNCE_DELAY)) {
+    lastBtn1Press = now;
+    if (currentMode != 1) setMode(1);
+    else toggleDoor();
+    while (digitalRead(BTN_MODE1) == LOW) delay(10);
   }
 
-  // BTN 2 = Mode 2
-  if (digitalRead(BTN_MODE2) == LOW) {
-    if (now - lastBtn2Press > DEBOUNCE_DELAY) {
-      lastBtn2Press = now;
-      setMode(2);
-
-      while (digitalRead(BTN_MODE2) == LOW) {
-        delay(10);
-      }
-    }
+  // BTN 2 = Mode 2 (Time In)
+  if (digitalRead(BTN_MODE2) == LOW && (now - lastBtn2Press > DEBOUNCE_DELAY)) {
+    lastBtn2Press = now;
+    setMode(2);
+    while (digitalRead(BTN_MODE2) == LOW) delay(10);
   }
 
-  // BTN 3 = Mode 3
-  if (digitalRead(BTN_MODE3) == LOW) {
-    if (now - lastBtn3Press > DEBOUNCE_DELAY) {
-      lastBtn3Press = now;
-      setMode(3);
-
-      while (digitalRead(BTN_MODE3) == LOW) {
-        delay(10);
-      }
-    }
+  // BTN 3 = Mode 3 (Time Out)
+  if (digitalRead(BTN_MODE3) == LOW && (now - lastBtn3Press > DEBOUNCE_DELAY)) {
+    lastBtn3Press = now;
+    setMode(3);
+    while (digitalRead(BTN_MODE3) == LOW) delay(10);
   }
 
-  // BTN 4 = Reset
-  if (digitalRead(BTN_RESET) == LOW) {
-    if (now - lastBtn4Press > DEBOUNCE_DELAY) {
-      lastBtn4Press = now;
-      Serial.println(">>> BUTTON RESET PRESSED");
-      showLCD("Resetting...", "Please wait");
-      beepTwice();
-      delay(800);
-      ESP.restart();
-    }
+  // BTN 4 = Mode 4 (Access Check)
+  if (digitalRead(BTN_MODE4) == LOW && (now - lastBtn4Press > DEBOUNCE_DELAY)) {
+    lastBtn4Press = now;
+    setMode(4);
+    while (digitalRead(BTN_MODE4) == LOW) delay(10);
+  }
+
+  // BTN RESET
+  if (digitalRead(BTN_RESET) == LOW && (now - lastBtnResetPress > DEBOUNCE_DELAY)) {
+    lastBtnResetPress = now;
+    showLCD("Resetting...", "Please wait");
+    beepTwice();
+    delay(800);
+    ESP.restart();
   }
 }
 
 // ================= Setup =================
 void setup() {
   Serial.begin(115200);
-  Serial.println();
-  Serial.println(">>> ==============================");
-  Serial.println(">>> ESP32 RFID Scanner Starting");
-  Serial.println(">>> ==============================");
+  
+  pinMode(BUZZER_PIN, OUTPUT); buzzerOff();
+  pinMode(RELAY_PIN, OUTPUT); relayLightOff();
 
-  // Buzzer
-  pinMode(BUZZER_PIN, OUTPUT);
-  buzzerOff();
-
-  // Relay / Light
-  pinMode(RELAY_PIN, OUTPUT);
-  relayLightOff();
-
-  // Buttons
   pinMode(BTN_MODE1, INPUT_PULLUP);
   pinMode(BTN_MODE2, INPUT_PULLUP);
   pinMode(BTN_MODE3, INPUT_PULLUP);
+  pinMode(BTN_MODE4, INPUT_PULLUP);  // Initialize the new 5th button
   pinMode(BTN_RESET, INPUT_PULLUP);
 
-  // Stepper pins
   pinMode(STEPPER_IN1, OUTPUT);
   pinMode(STEPPER_IN2, OUTPUT);
   pinMode(STEPPER_IN3, OUTPUT);
@@ -535,28 +456,19 @@ void setup() {
   releaseStepper();
   doorStepper.setSpeed(STEPPER_SPEED_RPM);
 
-  // LCD I2C
+  // Note: This maps SDA to 21, and SCL to 4!
   Wire.begin(21, 4);
   lcd.init();
   lcd.backlight();
   showLCD("Initializing...", "Please wait");
 
-  // RFID SPI
   SPI.begin(SCK_PIN, MISO_PIN, MOSI_PIN, SS_PIN);
   rfid.PCD_Init();
-  Serial.println(">>> RFID Reader initialized");
-
-  // WiFi
+  
   connectWiFi();
-
   showCurrentMode();
-
+  
   Serial.println(">>> READY");
-  Serial.println(">>> Buttons:");
-  Serial.println(">>> BTN1=Mode1 / Toggle Door");
-  Serial.println(">>> BTN2=Mode2");
-  Serial.println(">>> BTN3=Mode3");
-  Serial.println(">>> BTN4=Reset");
 }
 
 // ================= Main Loop =================
@@ -570,34 +482,22 @@ void loop() {
     showCurrentMode();
   }
 
-  // In MODE 1: NO RFID needed
+  // Mode 1 doesn't need RFID scans
   if (currentMode == 1) {
     delay(20);
     return;
   }
 
-  // MODE 2 and MODE 3 need RFID
-  if (!rfid.PICC_IsNewCardPresent()) {
-    delay(20);
-    return;
-  }
-
-  if (!rfid.PICC_ReadCardSerial()) {
+  // Listen for RFID cards
+  if (!rfid.PICC_IsNewCardPresent() || !rfid.PICC_ReadCardSerial()) {
     delay(20);
     return;
   }
 
   beepOnce(120);
-
   String uid = getUIDString();
 
-  Serial.println();
-  Serial.println(">>> ========== CARD DETECTED ==========");
-  Serial.println(">>> UID: " + uid);
-  Serial.println(">>> Mode: " + String(currentMode));
-
   if (uid == lastCardUID) {
-    Serial.println(">>> Same card detected, remove first");
     showLCD("Wait...", "Remove card");
     delay(1200);
     return;
@@ -606,69 +506,50 @@ void loop() {
   lastCardUID = uid;
   showLCD("Card Detected", "Processing...");
 
-  // ================= MODE 2 =================
+  String status = "";
+  String message = "";
+  String response = sendAttendance(uid, currentMode, status, message);
+
+  // If API denied or returned an error
+  if (status == "denied") {
+    handleDeniedOrError("ACCESS DENIED", message);
+    return;
+  }
+  if (status != "success") {
+    handleDeniedOrError("ERROR", message);
+    return;
+  }
+
+  // ================= MODE 2: Time In =================
   if (currentMode == 2) {
-    String status = "";
-    String message = "";
-    String response = sendAttendance(uid, 2, status, message);
-
-    Serial.println(">>> Server Response: " + response);
-
-    if (status == "denied") {
-      handleDeniedOrError("ACCESS DENIED", message);
-      return;
-    }
-
-    if (status != "success") {
-      handleDeniedOrError("ERROR", message);
-      return;
-    }
-
     relayLightOn();
-    Serial.println(">>> LIGHT ON after TIME IN success");
-
     openDoor("Time In");
     delay(5000);
     closeDoor("Auto Close");
-
     beepTwice();
     showLCD("TIME IN OK", "Door Closed");
     delay(1800);
-
-    waitForCardRemoval();
-    return;
   }
-
-  // ================= MODE 3 =================
-  if (currentMode == 3) {
-    String status = "";
-    String message = "";
-    String response = sendAttendance(uid, 3, status, message);
-
-    Serial.println(">>> Server Response: " + response);
-
-    if (status == "denied") {
-      handleDeniedOrError("ACCESS DENIED", message);
-      return;
-    }
-
-    if (status != "success") {
-      handleDeniedOrError("ERROR", message);
-      return;
-    }
-
+  // ================= MODE 3: Time Out =================
+  else if (currentMode == 3) {
     relayLightOff();
-    Serial.println(">>> LIGHT OFF after TIME OUT success");
-
     openDoor("Time Out");
     delay(5000);
     closeDoor("Auto Close");
-
     beepTwice();
     showLCD("TIME OUT OK", "Light OFF");
     delay(1800);
-
-    waitForCardRemoval();
-    return;
   }
+  // ================= MODE 4: Access (New) =================
+  else if (currentMode == 4) {
+    // Mode 4 just opens the door for access, it doesn't touch the light relay
+    openDoor("Access OK");
+    delay(5000);
+    closeDoor("Auto Close");
+    beepTwice();
+    showLCD("ACCESS GRANTED", "Door Closed");
+    delay(1800);
+  }
+
+  waitForCardRemoval();
 }

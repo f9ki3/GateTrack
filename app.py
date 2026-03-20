@@ -564,6 +564,40 @@ def log_attendance(user_id, time_in=None, time_out=None):
     
     conn.close()
 
+@app.route('/api/check_users', methods=['POST'])
+def api_check_users():
+    try:
+        data = request.get_json(silent=True) or {}
+        rfid = str(data.get('rfid', '')).strip().upper()
+        if not rfid:
+            return jsonify({
+                'status': 'error',
+                'message': 'Missing RFID parameter'
+            }), 400
+
+        user = get_user_by_rfid(rfid)
+        if not user:
+            return jsonify({
+                'status': 'denied',
+                'message': 'Invalid RFID - User not found'
+            }), 404
+
+        return jsonify({
+            'status': 'success',
+            'message': 'Access granted',
+            'user': {
+                'id': user['id'],
+                'email': user['email'],
+                'role': user['role']
+            }
+        }), 200
+
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        }), 500
+
 @app.route('/api/attendance', methods=['POST'])
 def api_attendance():
     try:
