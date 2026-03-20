@@ -1,6 +1,10 @@
 from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify, Response
 
-from database_utils import insert_user, get_all_users, get_user_by_email, delete_user, update_user, get_user_by_id
+from flask_jwt_extended import (
+    JWTManager, jwt_required, create_access_token, get_jwt_identity, get_jwt
+)
+
+from database_utils import insert_user, get_all_users, get_user_by_email, delete_user, update_user, get_user_by_id, get_user_attendance_paginated, get_user_attendance_csv_data_filtered
 
 import sqlite3
 from functools import wraps
@@ -8,6 +12,11 @@ from datetime import datetime, date
 
 app = Flask(__name__)
 app.secret_key = 'gatetrack_secret_key_2024'  # Change this in production
+
+# JWT config
+app.config['JWT_SECRET_KEY'] = 'gatetrack-jwt-mobile-secret-super-secure-2024-change-in-prod'
+app.config['JWT_ACCESS_TOKEN_EXPIRES'] = False  # No expiry for demo; set timedelta(hours=24)
+jwt = JWTManager(app)
 
 def format_time_12hr(time_str):
     """Convert 24-hour 'HH:MM:SS' to 12-hour 'hh:mm AM/PM'."""
@@ -77,6 +86,22 @@ def login_required(f):
             return redirect(url_for('login'))
         return f(*args, **kwargs)
     return decorated_function
+
+
+def mobile_required(f):
+    """Decorator for mobile API - requires JWT Bearer token."""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        try:
+            user_id = get_jwt_identity()
+            # Verify user exists
+            user = get_user_by_id(user_id)
+            if not user:
+                return jsonify({'success': False, 'message': 'User not found'}), 404
+        except Exception:
+            return jsonify({'success': False, 'message': 'Invalid token'}), 401
+        return f(user_id=user_id, *args, **kwargs)
+    return jwt_required(locations=['headers'])(decorated_function)
 
 @app.route('/')
 def home():
@@ -922,6 +947,207 @@ def change_password():
         
         return jsonify({'success': True, 'message': 'Password changed successfully'})
         
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+# ==================== MOBILE API v1 ====================
+
+@app.route('/api/v1/mobile/login', methods=['POST'])
+def mobile_login():
+    try:
+        data = request.get_json() or {}
+        email = data.get('email', '').strip()
+        password = data.get('password', '').strip()
+        
+        if not email or not password:
+            return jsonify({'success': False, 'message': 'Email and password required'}), 400
+        
+        user = authenticate_user(email, password)
+        if not user:
+            return jsonify({'success': False, 'message': 'Invalid credentials'}), 401
+        
+        # Create JWT token
+        access_token = create_access_token(identity=user['id'])
+        
+        return jsonify({
+            'success': True,
+            'message': 'Login successful',
+            'token': access_token,
+            'user': {
+                'id': user['id'],
+                'email': user['email'],
+                'first_name': user['first_name'],
+                'last_name': user['last_name'],
+                'username': user['username'],
+                'role': user['role'],
+                'contact': user['contact']
+            }
+        }), 200
+        
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+@app.route('/api/v1/mobile/profile', methods=['GET'])
+@mobile_required
+def get_profile(user_id):
+    try:
+        user = get_user_by_id(user_id)
+        if not user:
+            return jsonify({'success': False, 'message': 'User not found'}), 404
+        
+        return jsonify({
+            'success': True,
+            'user': {
+                'id': user['id'],
+                'email': user['email'],
+                'first_name': user['first_name'] or '',
+                'last_name': user['last_name'] or '',
+                'username': user['username'] or '',
+                'contact': user['contact'] or '',
+                'role': user['role'],
+                'gender': user['gender'] or '',
+                'rfid': user['rfid'] or '',
+                'created_at': user['created_at']
+            }
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/v1/mobile/profile', methods=['PUT'])
+@mobile_required
+def update_profile_mobile(user_id):
+    try:
+        data = request.get_json() or {}
+        first_name = data.get('first_name', '').strip()
+        last_name = data.get('last_name', '').strip()
+        email = data.get('email', '').strip().lower()
+        contact = data.get('contact', '').strip() or None
+        
+        if not first_name or not last_name or not email:
+            return jsonify({'success': False, 'message': 'first_name, last_name, email required'}), 400
+        
+        # Check email uniqueness
+        existing = get_user_by_email(email)
+        if existing and existing['id'] != user_id:
+            return jsonify({'success': False, 'message': 'Email already in use'}), 400
+        
+        success = update_user(
+            user_id,
+            first_name=first_name,
+            last_name=last_name,
+            email=email,
+            contact=contact
+        )
+        
+        if not success:
+            return jsonify({'success': False, 'message': 'Update failed'}), 500
+        
+        user = get_user_by_id(user_id)
+        return jsonify({
+            'success': True,
+            'message': 'Profile updated',
+            'user': {
+                'id': user['id'],
+                'email': user['email'],
+                'first_name': user['first_name'],
+                'last_name': user['last_name'],
+                'contact': user['contact'],
+                'role': user['role']
+            }
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/v1/mobile/password', methods=['PUT'])
+@mobile_required
+def change_password_mobile(user_id):
+    try:
+        data = request.get_json() or {}
+        current_password = data.get('current_password', '')
+        new_password = data.get('new_password', '')
+        confirm_password = data.get('confirm_password', '')
+        
+        if new_password != confirm_password:
+            return jsonify({'success': False, 'message': 'Passwords do not match'}), 400
+        
+        if len(new_password) < 6:
+            return jsonify({'success': False, 'message': 'Password too short (min 6)'}), 400
+        
+        user = get_user_by_id(user_id)
+        if not user or user['password'] != current_password:
+            return jsonify({'success': False, 'message': 'Current password incorrect'}), 401
+        
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute('UPDATE users SET password = ? WHERE id = ?', (new_password, user_id))
+        conn.commit()
+        conn.close()
+        return jsonify({'success': True, 'message': 'Password updated successfully'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+# ==================== MOBILE ATTENDANCE ====================
+
+@app.route('/api/v1/mobile/attendance', methods=['GET'])
+@mobile_required
+def mobile_attendance(user_id):
+    try:
+        page = int(request.args.get('page', 1))
+        per_page = int(request.args.get('per_page', 10))
+        search_term = request.args.get('search', '').strip()
+        date_from = request.args.get('date_from')
+        date_to = request.args.get('date_to')
+        
+        records, total_count = get_user_attendance_paginated(
+            user_id, page, per_page, search_term, date_from, date_to
+        )
+        
+        total_pages = (total_count + per_page - 1) // per_page
+        
+        return jsonify({
+            'success': True,
+            'page': page,
+            'per_page': per_page,
+            'total_count': total_count,
+            'total_pages': total_pages,
+            'records': records
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/v1/mobile/attendance/export/csv', methods=['GET'])
+@mobile_required
+def mobile_attendance_csv(user_id):
+    try:
+        search_term = request.args.get('search', '').strip()
+        date_from = request.args.get('date_from')
+        date_to = request.args.get('date_to')
+        
+        records = get_user_attendance_csv_data_filtered(
+            user_id, search_term, date_from, date_to
+        )
+        
+        output = StringIO()
+        if records:
+            writer = csv.DictWriter(output, fieldnames=records[0].keys())
+            writer.writeheader()
+            writer.writerows(records)
+        
+        csv_content = output.getvalue()
+        output.close()
+        
+        filename = f"my_attendance_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+        
+        return Response(
+            csv_content,
+            mimetype='text/csv',
+            headers={'Content-Disposition': f'attachment; filename={filename}'}
+        )
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500
 

@@ -492,6 +492,98 @@ def get_paginated_attendance(page: int = 1, per_page: int = 10, search_term: str
     conn.close()
     return records, total_count
 
+    
+# ==================== USER ATTENDANCE PAGINATION ====================
+
+def get_user_attendance_paginated(
+    user_id: int,
+    page: int = 1, 
+    per_page: int = 10, 
+    search_term: str = '', 
+    date_from: Optional[str] = None,
+    date_to: Optional[str] = None
+) -> tuple[list[dict], int]:
+    """Get paginated attendance for specific user with search/date filters. Returns (records, total_count)."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    offset = (page - 1) * per_page
+    
+    # Base params
+    params = [user_id]
+    where_conditions = ['a.user_id = ?']
+    
+    if search_term:
+        where_conditions.append('(u.username LIKE ? OR u.email LIKE ? OR COALESCE(u.first_name, \'\') LIKE ? OR COALESCE(u.last_name, \'\') LIKE ?)')
+        pattern = f'%{search_term}%'
+        params.extend([pattern]*4)
+    
+    if date_from:
+        where_conditions.append('date(a.created_at) >= ?')
+        params.append(date_from)
+    
+    if date_to:
+        where_conditions.append('date(a.created_at) <= ?')
+        params.append(date_to)
+    
+    where_clause = 'WHERE ' + ' AND '.join(where_conditions)
+    
+    # Count
+    count_query = f'SELECT COUNT(*) FROM attendance a INNER JOIN users u ON a.user_id = u.id {where_clause}'
+    cursor.execute(count_query, params)
+    total_count = cursor.fetchone()[0]
+    
+    # Query
+    duration_sql = """
+    CASE 
+      WHEN a.time_out IS NOT NULL AND a.time_in IS NOT NULL THEN
+        CASE 
+          WHEN strftime('%s', a.time_out) - strftime('%s', a.time_in) >= 3600 THEN
+            printf('%dh %dm', 
+                   (strftime('%s', a.time_out) - strftime('%s', a.time_in)) / 3600,
+                   ((strftime('%s', a.time_out) - strftime('%s', a.time_in)) / 60) % 60
+            )
+          ELSE
+            printf('%dm', (strftime('%s', a.time_out) - strftime('%s', a.time_in)) / 60)
+        END
+      ELSE '-'
+    END
+    """
+    
+    paginated_query = f'''
+        SELECT a.id, a.time_in, a.time_out, date(a.created_at) as date,
+               COALESCE(u.first_name, '') as first_name,
+               COALESCE(u.last_name, '') as last_name,
+               u.email, u.username, u.role,
+               {duration_sql} as duration
+        FROM attendance a
+        INNER JOIN users u ON a.user_id = u.id
+        {where_clause}
+        ORDER BY a.created_at DESC
+        LIMIT ? OFFSET ?
+    '''
+    params.extend([per_page, offset])
+    cursor.execute(paginated_query, params)
+    rows = cursor.fetchall()
+    
+    records = [dict(row) for row in rows]
+    conn.close()
+    return records, total_count
+
+
+def get_user_attendance_csv_data_filtered(
+    user_id: int,
+    search_term: str = '',
+    date_from: Optional[str] = None,
+    date_to: Optional[str] = None
+) -> List[dict]:
+    """Get filtered attendance CSV data for specific user."""
+    records, _ = get_user_attendance_paginated(
+        user_id, page=1, per_page=10000,
+        search_term=search_term, date_from=date_from, date_to=date_to
+    )
+    return records
+
 
 # ==================== EXAMPLE USAGE ====================
 
