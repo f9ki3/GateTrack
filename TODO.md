@@ -4,7 +4,7 @@
 
 - [x] 1. Create TODO.md with approved plan steps
 - [x] 2. Update constants/theme.ts with new light/dark colors from provided CSS vars
-- [ ] 3. Verify changes with expo start
-- [ ] 4. Complete task with attempt_completion
+- [x] 3. Verify changes with expo start
+- [x] 4. Complete task with attempt_completion
 
-Updated after step 2 complete.
+All steps complete.

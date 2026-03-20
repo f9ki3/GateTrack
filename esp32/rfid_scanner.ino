@@ -529,11 +529,11 @@ void showCurrentMode() {
   if (currentMode == 1) {
     showLCD("Mode 1: Manual", doorIsOpen ? "Press Btn1 Close" : "Press Btn1 Open");
   } else if (currentMode == 2) {
-    showLCD("Mode 2: Time In", "Scan RFID");
+    showLCD("Mode 3: Time In", "Scan RFID");
   } else if (currentMode == 3) {
-    showLCD("Mode 3: Time Out", "Scan RFID");
+    showLCD("Mode 4: Time Out", "Scan RFID");
   } else if (currentMode == 4) {
-    showLCD("Mode 4: Access", "Scan RFID");
+    showLCD("Mode 2: Access", "Scan RFID");
   }
 }
 
