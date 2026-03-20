@@ -34,56 +34,6 @@ String savedServerPort = "5000";
 unsigned long resetPressStart = 0;
 bool resetHandled = false;
 
-// ================= Web Interface UI Theme =================
-const String PAGE_HEAD = R"rawliteral(
-<!DOCTYPE html>
-<html data-bs-theme="light">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GateTrack Config</title>
-<style>
-  [data-bs-theme="light"] {
-    --bg-primary: #f5f6fa;
-    --bg-secondary: #ffffff;
-    --text-primary: #1c1e21;
-    --text-secondary: #6c757d;
-    --primary: #3b5bff;
-    --primary-hover: #2f49d1;
-    --border-color: #e5e7eb;
-    --card-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 6px 16px rgba(0, 0, 0, 0.06);
-  }
-  [data-bs-theme="dark"] {
-    --bg-primary: #121317;
-    --bg-secondary: #1f2126;
-    --text-primary: #f1f3f5;
-    --text-secondary: #9aa0a6;
-    --primary: #4c6fff;
-    --primary-hover: #5c7cff;
-    --border-color: #2b2f36;
-    --card-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-  body { background-color: var(--bg-primary); color: var(--text-primary); display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; }
-  .container { background-color: var(--bg-secondary); box-shadow: var(--card-shadow); border-radius: 12px; padding: 32px; width: 100%; max-width: 420px; }
-  h1 { font-size: 1.5rem; margin-bottom: 24px; text-align: center; color: var(--text-primary); }
-  .form-group { margin-bottom: 16px; text-align: left; }
-  label { display: block; margin-bottom: 6px; color: var(--text-secondary); font-size: 0.9rem; font-weight: 500; }
-  input { width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: 8px; background-color: var(--bg-primary); color: var(--text-primary); font-size: 1rem; outline: none; transition: border-color 0.2s, box-shadow 0.2s; }
-  input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(59, 91, 255, 0.1); }
-  button { width: 100%; padding: 14px; background-color: var(--primary); color: #fff; border: none; border-radius: 8px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: background-color 0.2s; margin-top: 10px; }
-  button:hover { background-color: var(--primary-hover); }
-  p, .note { font-size: 0.95rem; color: var(--text-secondary); margin-top: 15px; line-height: 1.5; text-align: center; }
-</style>
-<script>
-  if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-    document.documentElement.setAttribute('data-bs-theme', 'dark');
-  }
-</script>
-</head>
-<body>
-)rawliteral";
-
 // ================= WiFi Configuration =================
 const char* DEFAULT_WIFI_SSID = "Lleva";
 const char* DEFAULT_WIFI_PASSWORD = "4koSiFyke123*";
@@ -112,6 +62,8 @@ LiquidCrystal_I2C lcd(0x27, 16, 2); // SDA = 21, SCL = 4 (Set below in Wire.begi
 #define RELAY_OFF HIGH
 
 // ================= Button Pins =================
+// Wire each button from GPIO pin to GND
+// Using INPUT_PULLUP = pressed means LOW
 #define BTN_MODE1 33
 #define BTN_MODE2 25
 #define BTN_MODE3 14
@@ -131,11 +83,16 @@ LiquidCrystal_I2C lcd(0x27, 16, 2); // SDA = 21, SCL = 4 (Set below in Wire.begi
 
 Stepper doorStepper(STEPS_PER_REV, STEPPER_IN4, STEPPER_IN2, STEPPER_IN3, STEPPER_IN1);
 
+// Adjust these for your actual sliding mechanism
 int STEPPER_SPEED_RPM = 18;  
 int DOOR_OPEN_STEPS   = 4000;  
 
 // ================= Mode Configuration =================
 int currentMode = 1;
+// 1 = Manual door toggle by button only
+// 2 = Time In  (RFID -> validate -> light ON  -> door open 5s -> close)
+// 3 = Time Out (RFID -> validate -> light OFF -> door open 5s -> close)
+// 4 = Access   (RFID -> validate -> door open 5s -> close)
 
 // ================= State Variables =================
 bool doorIsOpen = false;
@@ -144,11 +101,12 @@ bool wifiConnected = false;
 unsigned long lastWifiCheck = 0;
 String lastCardUID = "";
 
+// button debounce timestamps
 unsigned long lastBtn1Press = 0;
 unsigned long lastBtn2Press = 0;
 unsigned long lastBtn3Press = 0;
-unsigned long lastBtn4Press = 0;     
-unsigned long lastBtnResetPress = 0; 
+unsigned long lastBtn4Press = 0;     // For the new Mode 4 button
+unsigned long lastBtnResetPress = 0; // For the Reset button (short press)
 
 // ================= RFID Re-initialization =================
 void reinitRFID() {
@@ -414,38 +372,17 @@ bool checkWiFiConnection() {
 
 // ================= Config Server Handlers =================
 void handleConfigRoot() {
-  String html = PAGE_HEAD;
-  html += R"rawliteral(
-    <div class="container">
-      <h1>GateTrack Setup</h1>
-      <form action="/config" method="POST">
-        <div class="form-group">
-          <label>WiFi SSID</label>
-          <input type="text" name="ssid" value="[SSID_VAL]" maxlength="32" required>
-        </div>
-        <div class="form-group">
-          <label>WiFi Password</label>
-          <input type="password" name="pass" value="[PASS_VAL]" maxlength="64">
-        </div>
-        <div class="form-group">
-          <label>Flask Server IP</label>
-          <input type="text" name="ip" value="[IP_VAL]" maxlength="15" required>
-        </div>
-        <div class="form-group">
-          <label>Server Port</label>
-          <input type="number" name="port" value="[PORT_VAL]" min="1" max="65535" required>
-        </div>
-        <button type="submit">Save & Reboot</button>
-      </form>
-    </div>
-  </body>
-  </html>
-  )rawliteral";
-  
-  html.replace("[SSID_VAL]", savedSSID);
-  html.replace("[PASS_VAL]", savedWifiPass);
-  html.replace("[IP_VAL]", savedServerIP);
-  html.replace("[PORT_VAL]", savedServerPort);
+  String html = "<!DOCTYPE html><html><head><title>GateTrack Config</title></head><body>";
+  html += "<h1>GateTrack WiFi & Server Config</h1>";
+  html += "<form action='/config' method='POST'>";
+  html += "WiFi SSID: <input type='text' name='ssid' value='" + savedSSID + "' maxlength='32'><br><br>";
+  html += "WiFi Password: <input type='password' name='pass' value='" + savedWifiPass + "' maxlength='64'><br><br>";
+  html += "Flask Server IP: <input type='text' name='ip' value='" + savedServerIP + "' maxlength='15'><br><br>";
+  html += "Server Port: <input type='number' name='port' value='" + savedServerPort + "' min='1' max='65535'><br><br>";
+  html += "<input type='submit' value='Save & Reboot'>";
+  html += "</form>";
+  html += "<p>Open 192.168.4.1 in browser after connecting to GateTrack_Config WiFi</p>";
+  html += "</body></html>";
   
   configServer.send(200, "text/html", html);
 }
@@ -457,31 +394,14 @@ void handleConfigSave() {
   savedServerPort = configServer.arg("port");
   
   if (savedSSID.length() == 0) {
-    String html = PAGE_HEAD;
-    html += R"rawliteral(
-      <div class="container" style="text-align: center;">
-        <h1 style="color: #ef4444;">Configuration Error</h1>
-        <p>The WiFi SSID field cannot be left empty.</p>
-        <button onclick="history.back()" style="margin-top: 20px; background-color: var(--text-secondary);">Go Back</button>
-      </div>
-    </body></html>
-    )rawliteral";
-    configServer.send(400, "text/html", html);
+    configServer.send(400, "text/html", "<h1>Error</h1><p>SSID cannot be empty</p>");
     return;
   }
   
   saveConfig();
   
-  String html = PAGE_HEAD;
-  html += R"rawliteral(
-    <div class="container" style="text-align: center;">
-      <h1 style="color: #10b981;">Configuration Saved!</h1>
-      <p>The device is now rebooting. It will attempt to connect to your configured WiFi network shortly.</p>
-      <p>You may now close this browser window.</p>
-    </div>
-  </body></html>
-  )rawliteral";
-  
+  String html = "<h1>Configuration Saved!</h1>";
+  html += "<p>Device will reboot to connect to new WiFi.</p>";
   configServer.send(200, "text/html", html);
   
   Serial.println("Rebooting...");
