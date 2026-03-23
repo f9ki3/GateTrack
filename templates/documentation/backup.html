@@ -1,0 +1,518 @@
+<!doctype html>
+<html lang="en" data-bs-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>GateTrack API Documentation</title>
+
+    <link
+      href="{{ url_for('static', filename='bootstrap/5.3.0/css/bootstrap.min.css') }}"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/style.css') }}"
+    />
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='bootstrap-icons/1.11.0/font/bootstrap-icons.css') }}"
+    />
+
+    <style>
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
+          Arial, sans-serif;
+        background-color: #121212;
+      }
+
+      .navbar {
+        background-color: #1e1e1e !important;
+        border-bottom: 1px solid #333;
+      }
+
+      .card {
+        background-color: #1e1e1e;
+        border: 1px solid #333;
+        border-radius: 12px;
+        transition:
+          transform 0.2s ease,
+          box-shadow 0.2s ease;
+      }
+
+      .card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+      }
+
+      .code-block {
+        background-color: #0d1117;
+        border: 1px solid #30363d;
+        border-radius: 8px;
+        padding: 1rem;
+        font-family: "Courier New", Courier, monospace;
+        font-size: 0.875rem;
+        color: #e6edf3;
+        overflow-x: auto;
+        position: relative;
+      }
+
+      .copy-btn {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        background: rgba(255, 255, 255, 0.1);
+        border: none;
+        color: #fff;
+        border-radius: 4px;
+        padding: 4px 8px;
+        font-size: 0.75rem;
+        cursor: pointer;
+        transition: background 0.2s;
+      }
+
+      .copy-btn:hover {
+        background: rgba(255, 255, 255, 0.2);
+      }
+
+      .table-dark {
+        --bs-table-bg: #1e1e1e;
+        --bs-table-border-color: #333;
+      }
+
+      .badge-auth {
+        font-size: 0.75rem;
+      }
+      .endpoint-method {
+        width: 60px;
+        display: inline-block;
+        text-align: center;
+      }
+    </style>
+  </head>
+  <body>
+    <section class="py-5 bg-primary">
+      <div class="container">
+        <h1 class="h2 fw-bold mb-3 text-white">GateTrack API Documentation</h1>
+        <p class="lead mb-0">
+          RESTful API for mobile attendance tracking and RFID gate access.
+        </p>
+        <div class="d-flex mt-3 gap-2 flex-wrap">
+          <span class="badge text-bg-danger px-2 py-1 small">Flask</span>
+          <span class="badge text-bg-secondary px-2 py-1 small">SQLite</span>
+          <span class="badge text-bg-success px-2 py-1 small">JWT</span>
+          <span class="badge text-bg-warning px-2 py-1 small text-dark"
+            >RFID</span
+          >
+        </div>
+      </div>
+    </section>
+
+    <div class="container mb-5">
+      <section class="mb-5 mt-4">
+        <div class="row g-4">
+          <div class="col-md-6">
+            <div class="card h-100 border-start border-primary border-4">
+              <div class="card-body">
+                <h5 class="card-title mb-3">
+                  <i class="bi bi-phone me-2"></i>Mobile App
+                </h5>
+                <p class="card-text text-secondary">
+                  React Native app uses <code>/api/v1/mobile/*</code> endpoints
+                  with JWT Bearer auth.
+                </p>
+                <ul class="list-unstyled text-secondary">
+                  <li class="mb-2">
+                    <i class="bi bi-check-circle-fill text-success me-2"></i
+                    >Login & Profile Management
+                  </li>
+                  <li class="mb-2">
+                    <i class="bi bi-check-circle-fill text-success me-2"></i
+                    >Attendance History Viewing
+                  </li>
+                  <li>
+                    <i class="bi bi-check-circle-fill text-success me-2"></i>CSV
+                    Data Export
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="card h-100 border-start border-warning border-4">
+              <div class="card-body">
+                <h5 class="card-title mb-3">
+                  <i class="bi bi-wifi me-2"></i>ESP32 RFID
+                </h5>
+                <p class="card-text text-secondary">
+                  Public endpoints for physical RFID scanners
+                  (<code>rfid_scanner</code>).
+                </p>
+                <ul class="list-unstyled text-secondary">
+                  <li class="mb-2">
+                    <i class="bi bi-check-circle-fill text-success me-2"></i
+                    >Open Door (Mode 1)
+                  </li>
+                  <li class="mb-2">
+                    <i class="bi bi-check-circle-fill text-success me-2"></i
+                    >Time In (Mode 2)
+                  </li>
+                  <li>
+                    <i class="bi bi-check-circle-fill text-success me-2"></i
+                    >Time Out (Mode 3)
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="mb-5">
+        <h2 class="h4 mb-4 text-white">
+          <i class="bi bi-shield-lock me-2"></i>Authentication
+        </h2>
+        <div class="row g-4">
+          <div class="col-lg-8">
+            <div class="card h-100">
+              <div class="card-header border-bottom border-dark pt-3 pb-2">
+                <h6 class="mb-0">
+                  <i class="bi bi-box-arrow-in-right me-2"></i>Mobile Login
+                  Sequence
+                </h6>
+              </div>
+              <div class="card-body">
+                <code class="fs-6 d-block mb-3 text-info"
+                  >POST /api/v1/mobile/login</code
+                >
+                <div class="code-block mb-3">
+                  <button class="copy-btn" title="Copy to clipboard">
+                    <i class="bi bi-clipboard"></i>
+                  </button>
+                  POST /api/v1/mobile/login Content-Type: application/json {
+                  "email": "user@example.com", "password": "password123" }
+                </div>
+                <div class="mt-3">
+                  <strong class="text-secondary">Response (200 OK):</strong>
+                  <div class="code-block mt-2">
+                    <button class="copy-btn" title="Copy to clipboard">
+                      <i class="bi bi-clipboard"></i>
+                    </button>
+                    { "success": true, "token": "eyJhbGciOiJIUzI1NiIs...",
+                    "user": {...} }
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-lg-4">
+            <div
+              class="alert alert-info border-0 bg-info bg-opacity-10 text-info"
+            >
+              <h6 class="alert-heading fw-bold">
+                <i class="bi bi-lightbulb me-2"></i>Protected Routes
+              </h6>
+              <p class="small mb-2">
+                Include this header in all protected mobile API calls:
+              </p>
+              <code
+                class="d-block bg-dark p-2 rounded text-white border border-info"
+                >Authorization: Bearer &lt;token&gt;</code
+              >
+            </div>
+            <div class="card border-danger border-opacity-50">
+              <div class="card-body text-center">
+                <i class="bi bi-key text-danger display-6 mb-2"></i>
+                <p class="mb-1 fw-bold text-white">JWT Secret</p>
+                <code class="small d-block text-secondary"
+                  >gatetrack-jwt-mobile-secret-super-secure-2024-change-in-prod</code
+                >
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="mb-5">
+        <h2 class="h4 mb-4 text-white">
+          <i class="bi bi-diagram-3 me-2"></i>Endpoints Reference
+        </h2>
+        <div class="card overflow-hidden">
+          <div class="table-responsive">
+            <table class="table table-dark table-hover align-middle mb-0">
+              <thead class="table-active">
+                <tr>
+                  <th class="py-3 px-4">Endpoint</th>
+                  <th>Method</th>
+                  <th>Auth</th>
+                  <th>Description</th>
+                  <th>Parameters</th>
+                  <th>Response</th>
+                </tr>
+              </thead>
+              <tbody class="border-top-0">
+                <tr>
+                  <td class="px-4">
+                    <code class="text-info">/api/v1/mobile/login</code>
+                  </td>
+                  <td>
+                    <span class="badge bg-success endpoint-method">POST</span>
+                  </td>
+                  <td>
+                    <span class="badge bg-secondary badge-auth">None</span>
+                  </td>
+                  <td class="text-secondary">Login & get JWT</td>
+                  <td class="text-secondary small">JSON: email, password</td>
+                  <td class="text-secondary small">200: {token, user}</td>
+                </tr>
+                <tr>
+                  <td class="px-4">
+                    <code class="text-info">/api/v1/mobile/profile</code>
+                  </td>
+                  <td>
+                    <span class="badge bg-primary endpoint-method mb-1"
+                      >GET</span
+                    ><br />
+                    <span class="badge bg-warning text-dark endpoint-method"
+                      >PUT</span
+                    >
+                  </td>
+                  <td><span class="badge bg-danger badge-auth">JWT</span></td>
+                  <td class="text-secondary">Get/Update profile</td>
+                  <td class="text-secondary small">
+                    PUT: first_name, last_name, email, contact
+                  </td>
+                  <td class="text-secondary small">200: {user}</td>
+                </tr>
+                <tr>
+                  <td class="px-4">
+                    <code class="text-info">/api/v1/mobile/password</code>
+                  </td>
+                  <td>
+                    <span class="badge bg-warning text-dark endpoint-method"
+                      >PUT</span
+                    >
+                  </td>
+                  <td><span class="badge bg-danger badge-auth">JWT</span></td>
+                  <td class="text-secondary">Change password</td>
+                  <td class="text-secondary small">
+                    current_password, new_password, confirm
+                  </td>
+                  <td class="text-secondary small">200: {success: true}</td>
+                </tr>
+                <tr>
+                  <td class="px-4">
+                    <code class="text-info">/api/v1/mobile/attendance</code>
+                  </td>
+                  <td>
+                    <span class="badge bg-primary endpoint-method">GET</span>
+                  </td>
+                  <td><span class="badge bg-danger badge-auth">JWT</span></td>
+                  <td class="text-secondary">Paginated attendance</td>
+                  <td class="text-secondary small">
+                    page, per_page, search, date_from, date_to
+                  </td>
+                  <td class="text-secondary small">
+                    200: {page, records: [...]}
+                  </td>
+                </tr>
+                <tr>
+                  <td class="px-4">
+                    <code class="text-info"
+                      >/api/v1/mobile/attendance/export/csv</code
+                    >
+                  </td>
+                  <td>
+                    <span class="badge bg-primary endpoint-method">GET</span>
+                  </td>
+                  <td><span class="badge bg-danger badge-auth">JWT</span></td>
+                  <td class="text-secondary">CSV export</td>
+                  <td class="text-secondary small">
+                    search, date_from, date_to
+                  </td>
+                  <td class="text-secondary small">CSV File Download</td>
+                </tr>
+                <tr class="table-active">
+                  <td class="px-4">
+                    <code class="text-warning">/api/check_users</code>
+                  </td>
+                  <td>
+                    <span class="badge bg-success endpoint-method">POST</span>
+                  </td>
+                  <td>
+                    <span class="badge bg-secondary badge-auth">None</span>
+                  </td>
+                  <td class="text-secondary">Verify RFID (ESP32)</td>
+                  <td class="text-secondary small">JSON: rfid</td>
+                  <td class="text-secondary small">
+                    {status: "success/denied", user}
+                  </td>
+                </tr>
+                <tr class="table-active">
+                  <td class="px-4">
+                    <code class="text-warning">/api/attendance</code>
+                  </td>
+                  <td>
+                    <span class="badge bg-success endpoint-method">POST</span>
+                  </td>
+                  <td>
+                    <span class="badge bg-secondary badge-auth">None</span>
+                  </td>
+                  <td class="text-secondary">RFID Log (ESP32)</td>
+                  <td class="text-secondary small">
+                    JSON: rfid, mode (1=door, 2=in, 3=out)
+                  </td>
+                  <td class="text-secondary small">{status, type, commands}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section class="mb-5">
+        <h2 class="h4 mb-4 text-white">
+          <i class="bi bi-play-circle me-2"></i>cURL Examples
+        </h2>
+        <div class="row g-4">
+          <div class="col-md-6">
+            <div class="card h-100">
+              <div
+                class="card-header bg-success bg-opacity-10 text-success border-bottom border-dark"
+              >
+                <h6 class="mb-0">Mobile Login</h6>
+              </div>
+              <div class="card-body">
+                <div class="code-block">
+                  <button class="copy-btn" title="Copy to clipboard">
+                    <i class="bi bi-clipboard"></i>
+                  </button>
+                  curl -X POST http://192.168.1.100:5000/api/v1/mobile/login \
+                  -H "Content-Type: application/json" \ -d
+                  '{"email":"user@example.com","password":"pass123"}'
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="card h-100">
+              <div
+                class="card-header bg-info bg-opacity-10 text-info border-bottom border-dark"
+              >
+                <h6 class="mb-0">Protected Request (Profile)</h6>
+              </div>
+              <div class="card-body">
+                <div class="code-block">
+                  <button class="copy-btn" title="Copy to clipboard">
+                    <i class="bi bi-clipboard"></i>
+                  </button>
+                  curl -X GET http://192.168.1.100:5000/api/v1/mobile/profile \
+                  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-12">
+            <div class="card">
+              <div
+                class="card-header bg-warning bg-opacity-10 text-warning border-bottom border-dark"
+              >
+                <h6 class="mb-0">ESP32 RFID Time-In Execution</h6>
+              </div>
+              <div class="card-body">
+                <div class="code-block">
+                  <button class="copy-btn" title="Copy to clipboard">
+                    <i class="bi bi-clipboard"></i>
+                  </button>
+                  curl -X POST http://192.168.1.100:5000/api/attendance \ -H
+                  "Content-Type: application/json" \ -d
+                  '{"rfid":"ABC123DEF456","mode":2}'
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="mb-5">
+        <h2 class="h4 mb-4 text-white">
+          <i class="bi bi-exclamation-triangle me-2"></i>Error Handling
+        </h2>
+        <div class="row g-4">
+          <div class="col-md-4">
+            <div class="card border-warning border-opacity-50 h-100">
+              <div class="card-body">
+                <h6>401 Unauthorized</h6>
+                <code class="small text-secondary"
+                  >{"success": false, "message": "Invalid token"}</code
+                >
+              </div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="card border-danger border-opacity-50 h-100">
+              <div class="card-body">
+                <h6>400 Bad Request</h6>
+                <code class="small text-secondary"
+                  >{"success": false, "message": "Missing RFID parameter"}</code
+                >
+              </div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="card border-info border-opacity-50 h-100">
+              <div class="card-body">
+                <h6>404 Not Found</h6>
+                <code class="small text-secondary"
+                  >{"success": false, "message": "User not found"}</code
+                >
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <footer class="text-center py-4 border-top border-dark mt-auto bg-dark">
+      <div class="container">
+        <p class="mb-1 text-secondary">
+          &copy; 2024 GateTrack API Documentation.
+        </p>
+        <p class="mb-0 small text-muted">
+          Base URL configurable in app.py:
+          <code>FLASK_SERVER_IP="192.168.1.100" PORT=5000</code>
+        </p>
+      </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+      // Enhanced copy-to-clipboard functionality
+      document.querySelectorAll(".copy-btn").forEach((btn) => {
+        btn.addEventListener("click", (e) => {
+          const block = e.currentTarget.parentElement;
+          // Clone the block and remove the button text to just copy the code
+          const clone = block.cloneNode(true);
+          clone.querySelector(".copy-btn").remove();
+          const textToCopy = clone.textContent.trim();
+
+          navigator.clipboard
+            .writeText(textToCopy)
+            .then(() => {
+              const originalIcon = btn.innerHTML;
+              btn.innerHTML =
+                '<i class="bi bi-check2 text-success"></i> Copied!';
+
+              setTimeout(() => {
+                btn.innerHTML = originalIcon;
+              }, 2000);
+            })
+            .catch((err) => {
+              console.error("Failed to copy text: ", err);
+            });
+        });
+      });
+    </script>
+  </body>
+</html>

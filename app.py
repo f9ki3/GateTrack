@@ -1152,6 +1152,12 @@ def mobile_attendance_csv(user_id):
         return jsonify({'success': False, 'message': str(e)}), 500
 
 
+@app.route('/documentation')
+def documentation():
+    """Serve API documentation."""
+    return render_template('documentation/documentation.html')
+
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", debug=True)
 

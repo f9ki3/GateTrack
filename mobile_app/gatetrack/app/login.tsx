@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import {
   Alert,
+  ActivityIndicator,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
@@ -171,28 +172,66 @@ export default function LoginScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [passwordHidden, setPasswordHidden] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleLogin = async () => {
-    const serverConfig = await AsyncStorage.getItem("serverConfig");
-    if (!serverConfig) {
-      Alert.alert("Setup Required", "Please configure the server URL first.");
-      router.replace("/setup"); // or router.back()
+    if (!email.trim() || !password.trim()) {
+      Alert.alert("Invalid Input", "Please enter email and password.");
       return;
     }
 
-    const HARDCODED_EMAIL = "admin@gatetrack.com";
-    const HARDCODED_PASSWORD = "password123";
+    const serverConfig = await AsyncStorage.getItem("serverConfig");
+    if (!serverConfig) {
+      Alert.alert("Setup Required", "Please configure the server URL first.");
+      router.replace("/setup");
+      return;
+    }
 
-    if (
-      email.toLowerCase() === HARDCODED_EMAIL &&
-      password === HARDCODED_PASSWORD
-    ) {
-      router.replace("/(tabs)");
-    } else {
+    setIsLoading(true);
+    try {
+      const config = JSON.parse(serverConfig);
+      const serverUrl = config.serverUrl;
+      if (!serverUrl) {
+        Alert.alert("Config Error", "Server URL not found in config.");
+        return;
+      }
+
+      const response = await fetch(`${serverUrl}/api/v1/mobile/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: email.trim().toLowerCase(),
+          password: password,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success && data.token) {
+        await AsyncStorage.setItem("@gatetrack:token", data.token);
+        if (data.user) {
+          await AsyncStorage.setItem(
+            "@gatetrack:user",
+            JSON.stringify(data.user),
+          );
+        }
+        router.replace("/(tabs)");
+      } else {
+        Alert.alert(
+          "Login Failed",
+          data.message || "Invalid email or password.",
+        );
+      }
+    } catch (error) {
+      console.error("Login error:", error);
       Alert.alert(
-        "Login Failed",
-        "The email or password you entered is incorrect.",
+        "Network Error",
+        "Unable to connect to server. Check your connection.",
       );
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -253,10 +292,22 @@ export default function LoginScreen() {
             <TouchableOpacity
               style={[styles.loginBtn, { backgroundColor: colors.tint }]}
               onPress={handleLogin}
+              disabled={isLoading}
               activeOpacity={0.85}
             >
-              <ThemedText style={styles.loginText}>Sign In</ThemedText>
-              <IconSymbol name="arrow.right" size={18} color="#fff" />
+              {isLoading ? (
+                <>
+                  <ActivityIndicator size="small" color="#fff" />
+                  <ThemedText style={styles.loginText}>
+                    Signing In...
+                  </ThemedText>
+                </>
+              ) : (
+                <>
+                  <ThemedText style={styles.loginText}>Sign In</ThemedText>
+                  <IconSymbol name="arrow.right" size={18} color="#fff" />
+                </>
+              )}
             </TouchableOpacity>
           </View>
 
