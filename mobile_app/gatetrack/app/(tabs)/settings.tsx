@@ -9,6 +9,8 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
+import { router } from "expo-router";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { ThemedText } from "@/components/themed-text";
@@ -67,7 +69,14 @@ const Input = ({
   );
 };
 
-const Section = ({ title, children, onSave, colors, primaryColor }: any) => (
+const Section = ({
+  title,
+  children,
+  onSave,
+  colors,
+  primaryColor,
+  colorScheme,
+}: any) => (
   <View style={styles.sectionContainer}>
     <ThemedText
       style={styles.sectionTitle}
@@ -78,14 +87,27 @@ const Section = ({ title, children, onSave, colors, primaryColor }: any) => (
     </ThemedText>
     <View style={styles.inputsContainer}>{children}</View>
     <TouchableOpacity
-      style={[styles.sectionSaveBtn, { backgroundColor: primaryColor }]}
+      style={[
+        styles.sectionSaveBtn,
+        {
+          backgroundColor:
+            colors.card || (colorScheme === "dark" ? "#2A2A2E" : "#FFFFFF"),
+          borderWidth: 1,
+          borderColor:
+            colors.border || (colorScheme === "dark" ? "#3A3A3E" : "#E5E5E7"),
+        },
+      ]}
       onPress={onSave}
-      activeOpacity={0.8}
+      activeOpacity={0.9}
     >
       <ThemedText
-        lightColor="#ffffff"
-        darkColor="#ffffff"
-        style={styles.sectionSaveText}
+        lightColor={
+          colors.text || (colorScheme === "dark" ? "#A0A0A5" : "#6B7280")
+        }
+        darkColor={
+          colors.text || (colorScheme === "dark" ? "#A0A0A5" : "#6B7280")
+        }
+        style={[styles.sectionSaveText, { fontWeight: "700" }]}
       >
         Save {title}
       </ThemedText>
@@ -161,6 +183,7 @@ export default function SettingsScreen() {
             onSave={saveProfile}
             colors={colors}
             primaryColor={primaryColor}
+            colorScheme={colorScheme}
           >
             <Input
               label="Full Name"
@@ -183,6 +206,7 @@ export default function SettingsScreen() {
             onSave={savePassword}
             colors={colors}
             primaryColor={primaryColor}
+            colorScheme={colorScheme}
           >
             <Input
               label="Current Password"
@@ -215,6 +239,7 @@ export default function SettingsScreen() {
             onSave={saveServer}
             colors={colors}
             primaryColor={primaryColor}
+            colorScheme={colorScheme}
           >
             <Input
               label="Server URL"
@@ -225,6 +250,49 @@ export default function SettingsScreen() {
             />
           </Section>
         </ScrollView>
+
+        <TouchableOpacity
+          style={[
+            styles.sectionSaveBtn,
+            {
+              backgroundColor: "#EF4444",
+              marginTop: 24,
+              marginHorizontal: 20,
+              marginBottom: 20,
+            },
+          ]}
+          onPress={async () => {
+            Alert.alert(
+              "Logout",
+              "This will clear server config and restart setup flow. Continue?",
+              [
+                { text: "Cancel", style: "cancel" },
+                {
+                  text: "Logout",
+                  style: "destructive",
+                  onPress: async () => {
+                    try {
+                      await AsyncStorage.removeItem("serverConfig");
+                      Alert.alert("Logged out", "Restarting setup...");
+                      router.replace("/setup");
+                    } catch (error) {
+                      Alert.alert("Error", "Logout failed");
+                    }
+                  },
+                },
+              ],
+            );
+          }}
+          activeOpacity={0.8}
+        >
+          <ThemedText
+            lightColor="#ffffff"
+            darkColor="#ffffff"
+            style={styles.sectionSaveText}
+          >
+            Logout (Restart Flow)
+          </ThemedText>
+        </TouchableOpacity>
       </KeyboardAvoidingView>
     </ThemedView>
   );
@@ -281,7 +349,7 @@ const styles = StyleSheet.create({
   },
   sectionSaveBtn: {
     height: 48,
-    borderRadius: 12, // Matches square/round look
+    borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
     marginTop: 16,

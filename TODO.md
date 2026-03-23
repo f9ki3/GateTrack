@@ -1,10 +1,7 @@
-# GateTrack Mobile App Theme Implementation
+# GateTrack TODOs
 
-## TODO Steps
+## Current Task: Fix login.tsx icon to shield-lock (no fill)
 
-- [x] 1. Create TODO.md with approved plan steps
-- [x] 2. Update constants/theme.ts with new light/dark colors from provided CSS vars
-- [x] 3. Verify changes with expo start
-- [x] 4. Complete task with attempt_completion
+✅ **Step 1:** Completed - login.tsx now uses ShieldLock (shield-lock no fill).
 
-All steps complete.
+## Completed
