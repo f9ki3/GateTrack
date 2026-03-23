@@ -98,12 +98,10 @@
           RESTful API for mobile attendance tracking and RFID gate access.
         </p>
         <div class="d-flex mt-3 gap-2 flex-wrap">
-          <span class="badge text-bg-danger px-2 py-1 small">Flask</span>
+          <span class="badge text-bg-secondary px-2 py-1 small">Flask</span>
           <span class="badge text-bg-secondary px-2 py-1 small">SQLite</span>
-          <span class="badge text-bg-success px-2 py-1 small">JWT</span>
-          <span class="badge text-bg-warning px-2 py-1 small text-dark"
-            >RFID</span
-          >
+          <span class="badge text-bg-secondary px-2 py-1 small">JWT</span>
+          <span class="badge text-bg-secondary px-2 py-1 small">RFID</span>
         </div>
       </div>
     </section>
@@ -256,10 +254,26 @@
                     <code class="text-info">/api/v1/mobile/login</code>
                   </td>
                   <td>
-                    <span class="badge bg-success endpoint-method">POST</span>
+                    <span
+                      class="badge endpoint-method"
+                      style="
+                        color: #479f76;
+                        background-color: rgba(71, 159, 118, 0.15);
+                        border: 1px solid rgba(71, 159, 118, 0.3);
+                      "
+                      >POST</span
+                    >
                   </td>
                   <td>
-                    <span class="badge bg-secondary badge-auth">None</span>
+                    <span
+                      class="badge badge-auth"
+                      style="
+                        color: #aeb7c0;
+                        background-color: rgba(174, 183, 192, 0.15);
+                        border: 1px solid rgba(174, 183, 192, 0.3);
+                      "
+                      >None</span
+                    >
                   </td>
                   <td class="text-secondary">Login & get JWT</td>
                   <td class="text-secondary small">JSON: email, password</td>
@@ -270,14 +284,36 @@
                     <code class="text-info">/api/v1/mobile/profile</code>
                   </td>
                   <td>
-                    <span class="badge bg-primary endpoint-method mb-1"
+                    <span
+                      class="badge endpoint-method mb-1"
+                      style="
+                        color: #6ea8fe;
+                        background-color: rgba(110, 168, 254, 0.15);
+                        border: 1px solid rgba(110, 168, 254, 0.3);
+                      "
                       >GET</span
                     ><br />
-                    <span class="badge bg-warning text-dark endpoint-method"
+                    <span
+                      class="badge endpoint-method"
+                      style="
+                        color: #ffda6a;
+                        background-color: rgba(255, 218, 106, 0.15);
+                        border: 1px solid rgba(255, 218, 106, 0.3);
+                      "
                       >PUT</span
                     >
                   </td>
-                  <td><span class="badge bg-danger badge-auth">JWT</span></td>
+                  <td>
+                    <span
+                      class="badge badge-auth"
+                      style="
+                        color: #ea868f;
+                        background-color: rgba(234, 134, 143, 0.15);
+                        border: 1px solid rgba(234, 134, 143, 0.3);
+                      "
+                      >JWT</span
+                    >
+                  </td>
                   <td class="text-secondary">Get/Update profile</td>
                   <td class="text-secondary small">
                     PUT: first_name, last_name, email, contact
@@ -289,11 +325,27 @@
                     <code class="text-info">/api/v1/mobile/password</code>
                   </td>
                   <td>
-                    <span class="badge bg-warning text-dark endpoint-method"
+                    <span
+                      class="badge endpoint-method"
+                      style="
+                        color: #ffda6a;
+                        background-color: rgba(255, 218, 106, 0.15);
+                        border: 1px solid rgba(255, 218, 106, 0.3);
+                      "
                       >PUT</span
                     >
                   </td>
-                  <td><span class="badge bg-danger badge-auth">JWT</span></td>
+                  <td>
+                    <span
+                      class="badge badge-auth"
+                      style="
+                        color: #ea868f;
+                        background-color: rgba(234, 134, 143, 0.15);
+                        border: 1px solid rgba(234, 134, 143, 0.3);
+                      "
+                      >JWT</span
+                    >
+                  </td>
                   <td class="text-secondary">Change password</td>
                   <td class="text-secondary small">
                     current_password, new_password, confirm
@@ -305,9 +357,27 @@
                     <code class="text-info">/api/v1/mobile/attendance</code>
                   </td>
                   <td>
-                    <span class="badge bg-primary endpoint-method">GET</span>
+                    <span
+                      class="badge endpoint-method"
+                      style="
+                        color: #6ea8fe;
+                        background-color: rgba(110, 168, 254, 0.15);
+                        border: 1px solid rgba(110, 168, 254, 0.3);
+                      "
+                      >GET</span
+                    >
                   </td>
-                  <td><span class="badge bg-danger badge-auth">JWT</span></td>
+                  <td>
+                    <span
+                      class="badge badge-auth"
+                      style="
+                        color: #ea868f;
+                        background-color: rgba(234, 134, 143, 0.15);
+                        border: 1px solid rgba(234, 134, 143, 0.3);
+                      "
+                      >JWT</span
+                    >
+                  </td>
                   <td class="text-secondary">Paginated attendance</td>
                   <td class="text-secondary small">
                     page, per_page, search, date_from, date_to
@@ -323,24 +393,58 @@
                     >
                   </td>
                   <td>
-                    <span class="badge bg-primary endpoint-method">GET</span>
+                    <span
+                      class="badge endpoint-method"
+                      style="
+                        color: #6ea8fe;
+                        background-color: rgba(110, 168, 254, 0.15);
+                        border: 1px solid rgba(110, 168, 254, 0.3);
+                      "
+                      >GET</span
+                    >
                   </td>
-                  <td><span class="badge bg-danger badge-auth">JWT</span></td>
+                  <td>
+                    <span
+                      class="badge badge-auth"
+                      style="
+                        color: #ea868f;
+                        background-color: rgba(234, 134, 143, 0.15);
+                        border: 1px solid rgba(234, 134, 143, 0.3);
+                      "
+                      >JWT</span
+                    >
+                  </td>
                   <td class="text-secondary">CSV export</td>
                   <td class="text-secondary small">
                     search, date_from, date_to
                   </td>
                   <td class="text-secondary small">CSV File Download</td>
                 </tr>
-                <tr class="table-active">
+                <tr>
                   <td class="px-4">
                     <code class="text-warning">/api/check_users</code>
                   </td>
                   <td>
-                    <span class="badge bg-success endpoint-method">POST</span>
+                    <span
+                      class="badge endpoint-method"
+                      style="
+                        color: #479f76;
+                        background-color: rgba(71, 159, 118, 0.15);
+                        border: 1px solid rgba(71, 159, 118, 0.3);
+                      "
+                      >POST</span
+                    >
                   </td>
                   <td>
-                    <span class="badge bg-secondary badge-auth">None</span>
+                    <span
+                      class="badge badge-auth"
+                      style="
+                        color: #aeb7c0;
+                        background-color: rgba(174, 183, 192, 0.15);
+                        border: 1px solid rgba(174, 183, 192, 0.3);
+                      "
+                      >None</span
+                    >
                   </td>
                   <td class="text-secondary">Verify RFID (ESP32)</td>
                   <td class="text-secondary small">JSON: rfid</td>
@@ -348,15 +452,31 @@
                     {status: "success/denied", user}
                   </td>
                 </tr>
-                <tr class="table-active">
+                <tr>
                   <td class="px-4">
                     <code class="text-warning">/api/attendance</code>
                   </td>
                   <td>
-                    <span class="badge bg-success endpoint-method">POST</span>
+                    <span
+                      class="badge endpoint-method"
+                      style="
+                        color: #479f76;
+                        background-color: rgba(71, 159, 118, 0.15);
+                        border: 1px solid rgba(71, 159, 118, 0.3);
+                      "
+                      >POST</span
+                    >
                   </td>
                   <td>
-                    <span class="badge bg-secondary badge-auth">None</span>
+                    <span
+                      class="badge badge-auth"
+                      style="
+                        color: #aeb7c0;
+                        background-color: rgba(174, 183, 192, 0.15);
+                        border: 1px solid rgba(174, 183, 192, 0.3);
+                      "
+                      >None</span
+                    >
                   </td>
                   <td class="text-secondary">RFID Log (ESP32)</td>
                   <td class="text-secondary small">
