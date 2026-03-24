@@ -93,11 +93,14 @@ def mobile_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         try:
-            user_id = get_jwt_identity()
+            jwt_identity = get_jwt_identity()
+            user_id = int(jwt_identity)
             # Verify user exists
             user = get_user_by_id(user_id)
             if not user:
                 return jsonify({'success': False, 'message': 'User not found'}), 404
+        except (ValueError, TypeError):
+            return jsonify({'success': False, 'message': 'Invalid user ID in token'}), 400
         except Exception:
             return jsonify({'success': False, 'message': 'Invalid token'}), 401
         return f(user_id=user_id, *args, **kwargs)
@@ -968,7 +971,7 @@ def mobile_login():
             return jsonify({'success': False, 'message': 'Invalid credentials'}), 401
         
         # Create JWT token
-        access_token = create_access_token(identity=user['id'])
+        access_token = create_access_token(identity=str(user['id']))
         
         return jsonify({
             'success': True,
