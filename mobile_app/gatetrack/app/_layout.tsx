@@ -5,40 +5,44 @@ import {
 } from "@react-navigation/native";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
+import { View, ActivityIndicator } from "react-native";
 import "react-native-reanimated";
 
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useAuth } from "@/hooks/useAuth";
+import { useEffect } from "react";
 
 export const unstable_settings = {
   anchor: "(tabs)",
 };
 
-import { useEffect } from "react";
-import { useRouter } from "expo-router";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-
 export default function RootLayout() {
   const colorScheme = useColorScheme();
-  const router = useRouter();
+  const { isLoading, isAuthenticated } = useAuth();
 
   useEffect(() => {
-    const checkInitialSetup = async () => {
-      try {
-        const serverConfig = await AsyncStorage.getItem("serverConfig");
-        if (!serverConfig) {
-          router.replace("/setup");
-        } else {
-          // Check if logged in (for future, hardcoded so go to login)
-          router.replace("/login");
-        }
-      } catch (error) {
-        console.error("Setup check failed:", error);
-        router.replace("/setup");
-      }
-    };
+    if (!isLoading) {
+      // Hook already handles redirects based on auth state
+    }
+  }, [isLoading, isAuthenticated]);
 
-    checkInitialSetup();
-  }, []);
+  if (isLoading) {
+    return (
+      <View
+        style={{
+          flex: 1,
+          justifyContent: "center",
+          alignItems: "center",
+          backgroundColor: colorScheme === "dark" ? "#000" : "#fff",
+        }}
+      >
+        <ActivityIndicator
+          size="large"
+          color={colorScheme === "dark" ? "#fff" : "#000"}
+        />
+      </View>
+    );
+  }
 
   return (
     <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>

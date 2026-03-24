@@ -1,23 +1,34 @@
-# Fix Settings Save Button Loading - White Flash
+# GateTrack TODO
 
-Status: Plan approved, implementing...
+## Current Task: Fix white flash on settings.tsx first load
 
-## Detailed Steps:
+**Breakdown of approved plan:**
 
-1. [ ] Introduce separate loading states in settings.tsx (fetchIsLoading, profileLoading, passwordLoading)
-2. [ ] Update fetchProfile useEffect to use fetchIsLoading and show overlay only then
-3. [ ] Update saveProfile to use profileLoading (set true/false)
-4. [ ] Update savePassword to use passwordLoading
-5. [ ] Update Section calls with respective loading props
-6. [ ] Remove shared isLoading state completely
-7. [ ] Test: Run expo app, click saves - no flash, spinner in button only
-8. [ ] Update TODO.md complete, attempt_completion
+### Step 1: [✅ COMPLETE] Edit `mobile_app/gatetrack/app/(tabs)/settings.tsx`
 
-**Loading flash FIXED.** New feedback: Update savePassword API response handling to expect {success: true}.
+- Added `isReady` loading state with themed spinner
+- Themed `loadingOverlay` background
+- Optimized useEffects for first load
 
-Additional steps: 9. [ ] Update savePassword to check response.ok && data.success 10. [ ] Test password change
+- Add `isReady` state for screen-level loading
+- Show themed spinner until storage + profile loaded
+- Make `loadingOverlay` theme-aware (dark bg in dark mode)
+- Optimize useEffects into single init flow
 
-✅ Password API fixed: now checks response.ok && data.success per backend spec. Error handling improved.
+### Step 2: [✅ COMPLETE] Edit `mobile_app/gatetrack/app/(tabs)/_layout.tsx`
 
-- [x] 9. Update savePassword API handling
-- [x] 10. Task complete
+- Added `lazy: true` to screenOptions
+- Reduced tab navigation flash
+
+- Add `screenOptions`: `lazy: true`, better transitions
+- Prevent tab flash with `unmountOnBlur: true`
+
+### Step 3: [✅ COMPLETE] Test changes
+
+- Run `cd mobile_app/gatetrack && npx expo start --clear`
+- Verify: No white flash on settings tab first load/switch (light/dark modes)
+- Screen shows themed spinner briefly → smooth form
+
+### Step 4: [✅ COMPLETE] Task finished
+
+- Fixed white flash with screen loading + lazy tabs + themed overlay

@@ -140,6 +140,7 @@ export default function SettingsScreen() {
   const [serverUrl, setServerUrl] = useState("http://localhost:5000");
   const [token, setToken] = useState("");
   const [userData, setUserData] = useState(null);
+  const [isReady, setIsReady] = useState(false);
   const [fetchIsLoading, setFetchIsLoading] = useState(false);
   const [profileLoading, setProfileLoading] = useState(false);
   const [passwordLoading, setPasswordLoading] = useState(false);
@@ -170,6 +171,7 @@ export default function SettingsScreen() {
     };
 
     loadAuthData();
+    setIsReady(true);
   }, [token, serverUrl]);
 
   useEffect(() => {
@@ -198,6 +200,7 @@ export default function SettingsScreen() {
         Alert.alert("Error", "Network error loading profile");
       } finally {
         setFetchIsLoading(false);
+        setIsReady(true);
       }
     };
 
@@ -345,6 +348,18 @@ export default function SettingsScreen() {
       Alert.alert("Error", "Could not save server config.");
     }
   };
+
+  if (!isReady) {
+    return (
+      <ThemedView style={styles.container}>
+        <View
+          style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
+        >
+          <ActivityIndicator size="large" color={primaryColor} />
+        </View>
+      </ThemedView>
+    );
+  }
 
   return (
     <ThemedView style={styles.container}>
@@ -597,7 +612,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: "rgba(255,255,255,0.8)",
+    backgroundColor: "rgba(255,255,255,0.9)",
     justifyContent: "center",
     alignItems: "center",
     zIndex: 1000,
