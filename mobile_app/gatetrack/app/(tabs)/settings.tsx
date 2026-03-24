@@ -1,6 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Alert,
+  ActivityIndicator,
   StyleSheet,
   ScrollView,
   TextInput,
@@ -73,8 +74,8 @@ const Section = ({
   title,
   children,
   onSave,
+  isLoading,
   colors,
-  primaryColor,
   colorScheme,
 }: any) => (
   <View style={styles.sectionContainer}>
@@ -98,19 +99,24 @@ const Section = ({
         },
       ]}
       onPress={onSave}
+      disabled={isLoading}
       activeOpacity={0.9}
     >
-      <ThemedText
-        lightColor={
-          colors.text || (colorScheme === "dark" ? "#A0A0A5" : "#6B7280")
-        }
-        darkColor={
-          colors.text || (colorScheme === "dark" ? "#A0A0A5" : "#6B7280")
-        }
-        style={[styles.sectionSaveText, { fontWeight: "700" }]}
-      >
-        Save {title}
-      </ThemedText>
+      {isLoading ? (
+        <ActivityIndicator size="small" color={colors.text} />
+      ) : (
+        <ThemedText
+          lightColor={
+            colors.text || (colorScheme === "dark" ? "#A0A0A5" : "#6B7280")
+          }
+          darkColor={
+            colors.text || (colorScheme === "dark" ? "#A0A0A5" : "#6B7280")
+          }
+          style={[styles.sectionSaveText, { fontWeight: "700" }]}
+        >
+          Save {title}
+        </ThemedText>
+      )}
     </TouchableOpacity>
   </View>
 );
@@ -124,22 +130,166 @@ export default function SettingsScreen() {
   const primaryColor = colors.tint;
   const inputBgColor = colors.bgSecondary || "rgba(150, 150, 150, 0.1)";
 
-  const [name, setName] = useState("John Doe");
-  const [email, setEmail] = useState("john@example.com");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [email, setEmail] = useState("");
+  const [contact, setContact] = useState("");
   const [oldPassword, setOldPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [serverUrl, setServerUrl] = useState("http://localhost:5000");
+  const [token, setToken] = useState("");
+  const [userData, setUserData] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const saveProfile = () => {
-    if (!name.trim() || !email.trim()) {
-      Alert.alert("Error", "Name and email are required");
+  useEffect(() => {
+    const loadAuthData = async () => {
+      try {
+        const tokenData = await AsyncStorage.getItem("@gatetrack:token");
+        const userJson = await AsyncStorage.getItem("@gatetrack:user");
+        const configJson = await AsyncStorage.getItem("serverConfig");
+
+        if (tokenData) setToken(tokenData);
+        if (userJson) {
+          const user = JSON.parse(userJson);
+          setUserData(user);
+          if (user.first_name) setFirstName(user.first_name);
+          if (user.last_name) setLastName(user.last_name);
+          if (user.email) setEmail(user.email);
+          if (user.contact) setContact(user.contact);
+        }
+        if (configJson) {
+          const config = JSON.parse(configJson);
+          if (config.serverUrl) setServerUrl(config.serverUrl);
+        }
+      } catch (error) {
+        console.error("Failed to load auth data:", error);
+      }
+    };
+
+    loadAuthData();
+  }, [token, serverUrl]);
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      if (!token || !serverUrl) return;
+      setIsLoading(true);
+      try {
+        const response = await fetch(`${serverUrl}/api/v1/mobile/profile`, {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        if (response.ok) {
+          const profile = await response.json();
+          setFirstName(profile.user.first_name || "");
+          setLastName(profile.user.last_name || "");
+          setEmail(profile.user.email || "");
+          setContact(profile.user.contact || "");
+          setUserData(profile.user);
+        } else {
+          Alert.alert("Error", "Failed to load profile");
+        }
+      } catch (error) {
+        console.error("Profile fetch error:", error);
+        Alert.alert("Error", "Network error loading profile");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (token && serverUrl) {
+      fetchProfile();
+    }
+  }, [token, serverUrl]);
+
+  const saveProfile = async () => {
+    const trimmedFirst = firstName.trim();
+    const trimmedLast = lastName.trim();
+    const trimmedEmail = email.trim();
+    const trimmedContact = contact.trim();
+
+    if (!trimmedFirst || !trimmedLast || !trimmedEmail) {
+      Alert.alert("Error", "First name, last name, and email are required");
       return;
     }
-    Alert.alert("Profile Saved", `Updated: ${name}`);
+
+    if (!trimmedEmail.includes("@") || !trimmedEmail.includes(".")) {
+      Alert.alert("Error", "Email must contain @ and .");
+      return;
+    }
+
+    if (
+      trimmedContact &&
+      trimmedContact.length > 0 &&
+      trimmedContact.length < 5
+    ) {
+      Alert.alert("Error", "Contact too short (min 5 chars)");
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const response = await fetch(`${serverUrl}/api/v1/mobile/profile`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          first_name: trimmedFirst,
+          last_name: trimmedLast,
+          email: trimmedEmail,
+          contact: trimmedContact || null,
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setUserData(data.user);
+        await AsyncStorage.setItem(
+          "@gatetrack:user",
+          JSON.stringify(data.user),
+        );
+        Alert.alert("Success", "Profile updated successfully!");
+        return;
+      }
+
+      let errorMessage = "Failed to update profile";
+      try {
+        const errorData = await response.json();
+        if (errorData.errors && typeof errorData.errors === "object") {
+          const firstErrorKey = Object.keys(errorData.errors)[0];
+          errorMessage = `${firstErrorKey}: ${errorData.errors[firstErrorKey][0]}`;
+        } else if (Array.isArray(errorData.detail)) {
+          errorMessage = errorData.detail
+            .map((err: any) => `${err.loc[err.loc.length - 1]}: ${err.msg}`)
+            .join("\n");
+        } else {
+          errorMessage =
+            errorData.message ||
+            errorData.detail ||
+            errorData.error ||
+            `Server validation error (${response.status})`;
+        }
+      } catch (jsonError) {
+        errorMessage = `Server error ${response.status}: ${response.statusText}`;
+      }
+
+      Alert.alert("Update Failed", errorMessage);
+    } catch (error) {
+      console.error("Profile update error:", error);
+      Alert.alert(
+        "Network Error",
+        "Unable to connect to server. Check your connection.",
+      );
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const savePassword = () => {
+  const savePassword = async () => {
     if (newPassword !== confirmPassword) {
       Alert.alert("Error", "Passwords do not match");
       return;
@@ -148,12 +298,52 @@ export default function SettingsScreen() {
       Alert.alert("Error", "Password must be at least 6 characters");
       return;
     }
-    Alert.alert("Password Changed", "Success");
+    setIsLoading(true);
+    try {
+      const response = await fetch(`${serverUrl}/api/v1/mobile/password`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          current_password: oldPassword,
+          new_password: newPassword,
+          confirm: confirmPassword,
+        }),
+      });
+      if (response.ok) {
+        Alert.alert("Success", "Password changed");
+        setOldPassword("");
+        setNewPassword("");
+        setConfirmPassword("");
+      } else {
+        let errorMessage = "Failed to change password";
+        try {
+          const err = await response.json();
+          errorMessage = err.message || err.detail || errorMessage;
+        } catch (e) {}
+        Alert.alert("Error", errorMessage);
+      }
+    } catch (error) {
+      console.error(error);
+      Alert.alert("Error", "Network error");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const saveServer = () => {
-    if (!serverUrl.trim()) return;
-    Alert.alert("Server Saved", `Updated to: ${serverUrl}`);
+  const saveServer = async () => {
+    if (!serverUrl.trim()) {
+      Alert.alert("Error", "Server URL is required");
+      return;
+    }
+    try {
+      await AsyncStorage.setItem("serverConfig", JSON.stringify({ serverUrl }));
+      Alert.alert("Server Saved", `Updated to: ${serverUrl}`);
+    } catch (error) {
+      Alert.alert("Error", "Could not save server config.");
+    }
   };
 
   return (
@@ -162,7 +352,6 @@ export default function SettingsScreen() {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={{ flex: 1 }}
       >
-        {/* Fixed Header Height Issue */}
         <View
           style={{
             paddingTop: insets.top + 10,
@@ -173,6 +362,12 @@ export default function SettingsScreen() {
           <ThemedText style={styles.title}>Settings</ThemedText>
         </View>
 
+        {isLoading && (
+          <View style={styles.loadingOverlay}>
+            <ActivityIndicator size="large" color={colors.tint} />
+          </View>
+        )}
+
         <ScrollView
           contentContainerStyle={styles.content}
           showsVerticalScrollIndicator={false}
@@ -181,14 +376,21 @@ export default function SettingsScreen() {
           <Section
             title="Profile"
             onSave={saveProfile}
+            isLoading={isLoading}
             colors={colors}
-            primaryColor={primaryColor}
             colorScheme={colorScheme}
           >
             <Input
-              label="Full Name"
-              value={name}
-              onChangeText={setName}
+              label="First Name"
+              value={firstName}
+              onChangeText={setFirstName}
+              colors={colors}
+              inputBgColor={inputBgColor}
+            />
+            <Input
+              label="Last Name"
+              value={lastName}
+              onChangeText={setLastName}
               colors={colors}
               inputBgColor={inputBgColor}
             />
@@ -199,13 +401,20 @@ export default function SettingsScreen() {
               colors={colors}
               inputBgColor={inputBgColor}
             />
+            <Input
+              label="Contact"
+              value={contact}
+              onChangeText={setContact}
+              colors={colors}
+              inputBgColor={inputBgColor}
+            />
           </Section>
 
           <Section
             title="Security"
             onSave={savePassword}
+            isLoading={isLoading}
             colors={colors}
-            primaryColor={primaryColor}
             colorScheme={colorScheme}
           >
             <Input
@@ -238,7 +447,6 @@ export default function SettingsScreen() {
             title="Network"
             onSave={saveServer}
             colors={colors}
-            primaryColor={primaryColor}
             colorScheme={colorScheme}
           >
             <Input
@@ -262,26 +470,24 @@ export default function SettingsScreen() {
             },
           ]}
           onPress={async () => {
-            Alert.alert(
-              "Logout",
-              "This will clear server config and restart setup flow. Continue?",
-              [
-                { text: "Cancel", style: "cancel" },
-                {
-                  text: "Logout",
-                  style: "destructive",
-                  onPress: async () => {
-                    try {
-                      await AsyncStorage.removeItem("serverConfig");
-                      Alert.alert("Logged out", "Restarting setup...");
-                      router.replace("/setup");
-                    } catch (error) {
-                      Alert.alert("Error", "Logout failed");
-                    }
-                  },
+            Alert.alert("Logout", "Clear token/user and go to login?", [
+              { text: "Cancel", style: "cancel" },
+              {
+                text: "Logout",
+                style: "destructive",
+                onPress: async () => {
+                  try {
+                    await AsyncStorage.multiRemove([
+                      "@gatetrack:token",
+                      "@gatetrack:user",
+                    ]);
+                    router.replace("/login");
+                  } catch (error) {
+                    Alert.alert("Error", "Logout failed");
+                  }
                 },
-              ],
-            );
+              },
+            ]);
           }}
           activeOpacity={0.8}
         >
@@ -290,7 +496,7 @@ export default function SettingsScreen() {
             darkColor="#ffffff"
             style={styles.sectionSaveText}
           >
-            Logout (Restart Flow)
+            Logout
           </ThemedText>
         </TouchableOpacity>
       </KeyboardAvoidingView>
@@ -357,5 +563,43 @@ const styles = StyleSheet.create({
   sectionSaveText: {
     fontSize: 15,
     fontWeight: "700",
+  },
+  userInfo: {
+    fontSize: 14,
+    opacity: 0.7,
+    marginTop: 4,
+    paddingHorizontal: 14,
+  },
+  noToken: {
+    textAlign: "center",
+    opacity: 0.5,
+    fontStyle: "italic",
+    padding: 20,
+  },
+  authSection: {
+    marginBottom: 32,
+  },
+  authSectionTitle: {
+    fontSize: 12,
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 1,
+    marginBottom: 12,
+    opacity: 0.6,
+  },
+  authInputWrapper: {
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  loadingOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(255,255,255,0.8)",
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 1000,
   },
 });

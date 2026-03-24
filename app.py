@@ -1025,13 +1025,6 @@ def update_profile_mobile(user_id):
         email = data.get('email', '').strip().lower()
         contact = data.get('contact', '').strip() or None
         
-        if not first_name or not last_name or not email:
-            return jsonify({'success': False, 'message': 'first_name, last_name, email required'}), 400
-        
-        # Check email uniqueness
-        existing = get_user_by_email(email)
-        if existing and existing['id'] != user_id:
-            return jsonify({'success': False, 'message': 'Email already in use'}), 400
         
         success = update_user(
             user_id,
@@ -1047,7 +1040,7 @@ def update_profile_mobile(user_id):
         user = get_user_by_id(user_id)
         return jsonify({
             'success': True,
-            'message': 'Profile updated',
+            'message': 'Profile updated successfully',
             'user': {
                 'id': user['id'],
                 'email': user['email'],
@@ -1058,7 +1051,8 @@ def update_profile_mobile(user_id):
             }
         })
     except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
+        app.logger.error(f"Profile update error: {str(e)}")
+        return jsonify({'success': False, 'message': f'Update error: {str(e)}'}), 500
 
 
 @app.route('/api/v1/mobile/password', methods=['PUT'])
