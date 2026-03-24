@@ -140,7 +140,9 @@ export default function SettingsScreen() {
   const [serverUrl, setServerUrl] = useState("http://localhost:5000");
   const [token, setToken] = useState("");
   const [userData, setUserData] = useState(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [fetchIsLoading, setFetchIsLoading] = useState(false);
+  const [profileLoading, setProfileLoading] = useState(false);
+  const [passwordLoading, setPasswordLoading] = useState(false);
 
   useEffect(() => {
     const loadAuthData = async () => {
@@ -173,7 +175,7 @@ export default function SettingsScreen() {
   useEffect(() => {
     const fetchProfile = async () => {
       if (!token || !serverUrl) return;
-      setIsLoading(true);
+      setFetchIsLoading(true);
       try {
         const response = await fetch(`${serverUrl}/api/v1/mobile/profile`, {
           method: "GET",
@@ -195,7 +197,7 @@ export default function SettingsScreen() {
         console.error("Profile fetch error:", error);
         Alert.alert("Error", "Network error loading profile");
       } finally {
-        setIsLoading(false);
+        setFetchIsLoading(false);
       }
     };
 
@@ -229,7 +231,7 @@ export default function SettingsScreen() {
       return;
     }
 
-    setIsLoading(true);
+    setProfileLoading(true);
     try {
       const response = await fetch(`${serverUrl}/api/v1/mobile/profile`, {
         method: "PUT",
@@ -285,7 +287,7 @@ export default function SettingsScreen() {
         "Unable to connect to server. Check your connection.",
       );
     } finally {
-      setIsLoading(false);
+      setProfileLoading(false);
     }
   };
 
@@ -298,7 +300,7 @@ export default function SettingsScreen() {
       Alert.alert("Error", "Password must be at least 6 characters");
       return;
     }
-    setIsLoading(true);
+    setPasswordLoading(true);
     try {
       const response = await fetch(`${serverUrl}/api/v1/mobile/password`, {
         method: "PUT",
@@ -309,27 +311,25 @@ export default function SettingsScreen() {
         body: JSON.stringify({
           current_password: oldPassword,
           new_password: newPassword,
-          confirm: confirmPassword,
+          confirm_password: confirmPassword,
         }),
       });
-      if (response.ok) {
+      const data = await response.json();
+      if (response.ok && data.success) {
         Alert.alert("Success", "Password changed");
         setOldPassword("");
         setNewPassword("");
         setConfirmPassword("");
       } else {
-        let errorMessage = "Failed to change password";
-        try {
-          const err = await response.json();
-          errorMessage = err.message || err.detail || errorMessage;
-        } catch (e) {}
+        let errorMessage =
+          data?.message || data?.detail || "Failed to change password";
         Alert.alert("Error", errorMessage);
       }
     } catch (error) {
       console.error(error);
       Alert.alert("Error", "Network error");
     } finally {
-      setIsLoading(false);
+      setPasswordLoading(false);
     }
   };
 
@@ -362,7 +362,7 @@ export default function SettingsScreen() {
           <ThemedText style={styles.title}>Settings</ThemedText>
         </View>
 
-        {isLoading && (
+        {fetchIsLoading && (
           <View style={styles.loadingOverlay}>
             <ActivityIndicator size="large" color={colors.tint} />
           </View>
@@ -376,7 +376,7 @@ export default function SettingsScreen() {
           <Section
             title="Profile"
             onSave={saveProfile}
-            isLoading={isLoading}
+            isLoading={profileLoading}
             colors={colors}
             colorScheme={colorScheme}
           >
@@ -413,7 +413,7 @@ export default function SettingsScreen() {
           <Section
             title="Security"
             onSave={savePassword}
-            isLoading={isLoading}
+            isLoading={passwordLoading}
             colors={colors}
             colorScheme={colorScheme}
           >

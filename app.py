@@ -1068,7 +1068,7 @@ def change_password_mobile(user_id):
         confirm_password = data.get('confirm_password', '')
         
         if new_password != confirm_password:
-            return jsonify({'success': False, 'message': 'Passwords do not match'}), 400
+            return jsonify({'success': False, 'message': 'Passwords do not matches'}), 400
         
         if len(new_password) < 6:
             return jsonify({'success': False, 'message': 'Password too short (min 6)'}), 400
