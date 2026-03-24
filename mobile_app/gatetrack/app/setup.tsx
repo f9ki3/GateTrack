@@ -1,6 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Alert,
+  ActivityIndicator,
   StyleSheet,
   ScrollView,
   TextInput,
@@ -159,18 +160,65 @@ export default function SetupScreen() {
 
   const [host, setHost] = useState("localhost");
   const [port, setPort] = useState("5000");
+  const [isConnecting, setIsConnecting] = useState(false);
+
+  const loadServerConfig = async () => {
+    try {
+      const configJson = await AsyncStorage.getItem("serverConfig");
+      if (configJson) {
+        const { serverUrl } = JSON.parse(configJson);
+        const match = serverUrl.match(/http:\/\/([^:]+):(\d+)/);
+        if (match) {
+          setHost(match[1]);
+          setPort(match[2]);
+        }
+      }
+    } catch (error) {
+      console.error("Failed to load server config:", error);
+    }
+  };
+
+  useEffect(() => {
+    loadServerConfig();
+  }, []);
 
   const saveServer = async () => {
-    if (!host.trim() || !port.trim()) {
-      Alert.alert("Required", "Please enter both host and port.");
+    if (isConnecting || !host.trim() || !port.trim()) {
+      if (!host.trim() || !port.trim()) {
+        Alert.alert("Required", "Please enter both host and port.");
+      }
       return;
     }
+
     const serverUrl = `http://${host.trim()}:${port.trim()}`;
+    setIsConnecting(true);
+
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      const response = await fetch(serverUrl, {
+        method: "GET",
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+      if (!response.ok) {
+        throw new Error(`Server responded with status ${response.status}`);
+      }
+
       await AsyncStorage.setItem("serverConfig", JSON.stringify({ serverUrl }));
-      router.replace("/login");
-    } catch (error) {
-      Alert.alert("Error", "Could not save settings.");
+      Alert.alert("Success", "Server connected!", [
+        { text: "OK", onPress: () => router.replace("/login") },
+      ]);
+    } catch (error: any) {
+      let errorMsg = "Connection failed. Check host/port and server status.";
+      if (error.message.includes("status")) {
+        errorMsg = `Server error: ${error.message}`;
+      } else if (error.message.includes("Network request failed")) {
+        errorMsg = "Network error. Check if server is running.";
+      }
+      Alert.alert("Connection Failed", errorMsg);
+    } finally {
+      setIsConnecting(false);
     }
   };
 
@@ -231,12 +279,34 @@ export default function SetupScreen() {
             />
 
             <TouchableOpacity
-              style={[styles.primaryButton, { backgroundColor: colors.tint }]}
+              style={[
+                styles.primaryButton,
+                {
+                  backgroundColor: isConnecting
+                    ? colors.tabIconDefault
+                    : colors.tint,
+                },
+              ]}
               onPress={saveServer}
+              disabled={isConnecting}
               activeOpacity={0.85}
             >
-              <ThemedText style={styles.buttonText}>Connect Server</ThemedText>
-              <IconSymbol name="chevron.right" size={18} color="#fff" />
+              {isConnecting ? (
+                <>
+                  <ActivityIndicator size="small" color="#fff" />
+                  <ThemedText style={[styles.buttonText, { opacity: 0.8 }]}>
+                    Connecting...
+                  </ThemedText>
+                </>
+              ) : (
+                <>
+                  <IconSymbol name="wifi" size={20} color="#fff" />
+                  <ThemedText style={styles.buttonText}>
+                    Connect Server
+                  </ThemedText>
+                  <IconSymbol name="chevron.right" size={18} color="#fff" />
+                </>
+              )}
             </TouchableOpacity>
           </View>
 
