@@ -22,13 +22,20 @@ export function useAuth() {
     token: string,
     url: string,
   ): Promise<boolean> => {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5s timeout
+
     try {
+      console.log("Validating token against:", url);
       const response = await fetch(`${url}/api/v1/mobile/profile`, {
         method: "GET",
         headers: {
           Authorization: `Bearer ${token}`,
         },
+        signal: controller.signal,
       });
+      clearTimeout(timeoutId);
+
       if (response.ok) {
         const data = await response.json();
         setUser(data.user);
@@ -36,11 +43,14 @@ export function useAuth() {
           "@gatetrack:user",
           JSON.stringify(data.user),
         );
+        console.log("Token valid, user:", data.user);
         return true;
       }
+      console.log("Token invalid, status:", response.status);
       return false;
-    } catch (error) {
-      console.error("Token validation error:", error);
+    } catch (error: any) {
+      clearTimeout(timeoutId);
+      console.error("Token validation error:", error.message);
       return false;
     }
   };
@@ -48,39 +58,45 @@ export function useAuth() {
   const checkAuth = async () => {
     try {
       setIsLoading(true);
+      console.log("Checking auth...");
+
       const configJson = await AsyncStorage.getItem("serverConfig");
       if (!configJson) {
+        console.log("No serverConfig, redirect to setup");
         setIsAuthenticated(false);
-        router.replace("/setup");
-        return;
+        setIsLoading(false);
+        return; // Don't navigate here, let layout handle
       }
+
       const config = JSON.parse(configJson);
       setServerUrl(config.serverUrl || "");
       if (!config.serverUrl) {
+        console.log("No serverUrl in config");
         setIsAuthenticated(false);
-        router.replace("/setup");
+        setIsLoading(false);
         return;
       }
 
       const token = await AsyncStorage.getItem("@gatetrack:token");
       if (!token) {
+        console.log("No token");
         setIsAuthenticated(false);
-        router.replace("/login");
+        setIsLoading(false);
         return;
       }
 
       const valid = await validateToken(token, config.serverUrl);
       setIsAuthenticated(valid);
       if (!valid) {
+        console.log("Invalid token");
         await AsyncStorage.multiRemove(["@gatetrack:token", "@gatetrack:user"]);
-        router.replace("/login");
       }
     } catch (error) {
       console.error("Auth check error:", error);
       setIsAuthenticated(false);
-      router.replace("/setup");
     } finally {
       setIsLoading(false);
+      console.log("Auth check complete, isAuthenticated:", isAuthenticated);
     }
   };
 

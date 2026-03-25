@@ -10,7 +10,9 @@ import "react-native-reanimated";
 
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAuth } from "@/hooks/useAuth";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useEffect } from "react";
+import { router } from "expo-router";
 
 export const unstable_settings = {
   anchor: "(tabs)",
@@ -22,7 +24,16 @@ export default function RootLayout() {
 
   useEffect(() => {
     if (!isLoading) {
-      // Hook already handles redirects based on auth state
+      console.log("Layout ready, isAuthenticated:", isAuthenticated);
+      if (!isAuthenticated) {
+        // Only navigate after loading done to avoid conflicts
+        const configJson = AsyncStorage.getItem("serverConfig");
+        if (!configJson) {
+          router.replace("/setup");
+        } else {
+          router.replace("/login");
+        }
+      }
     }
   }, [isLoading, isAuthenticated]);
 
