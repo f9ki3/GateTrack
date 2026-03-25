@@ -1,9 +1,15 @@
-# GateTrack Dark Mode Skeleton
+# GateTrack CSV Export Task
 
-## Steps:
+## Status: In Progress
 
-✅ Step 1: Update skeleton.tsx for theme-aware background and shimmer
+### Steps:
 
-✅ Step 2: Test dark/light modes in settings.tsx loading
+- [x] 1. Create this TODO.md
+- [x] 2. Check/Install deps ✓ (core Expo, install running)
+- [ ] 3. Edit mobile_app/gatetrack/app/(tabs)/index.tsx: Add imports, implement handleExport with FileSystem/Share
+- [ ] 4. Test download
+- [x] 3. Edit mobile_app/gatetrack/app/(tabs)/index.tsx ✓ (legacy FS + retry)
+- [ ] 5. Mark complete & attempt_completion
 
-✅ Step 3: Verify no regressions
+Current file: mobile_app/gatetrack/app/(tabs)/index.tsx
+API: /api/v1/mobile/attendance/export/csv ✓ Backend ready

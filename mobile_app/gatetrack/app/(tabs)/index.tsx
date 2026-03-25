@@ -10,6 +10,8 @@ import {
   Platform,
   ActivityIndicator,
 } from "react-native";
+import * as LegacyFileSystem from "expo-file-system/legacy";
+import * as Sharing from "expo-sharing";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -42,6 +44,7 @@ export default function AttendanceScreen() {
   const [attendanceData, setAttendanceData] = useState<AttendanceRecord[]>([]);
   const [totalPagesState, setTotalPagesState] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [exportLoading, setExportLoading] = useState(false);
   const [error, setError] = useState("");
 
   const loadConfig = async () => {
@@ -118,8 +121,47 @@ export default function AttendanceScreen() {
     }
   };
 
-  const handleExport = () => {
-    Alert.alert("Export", "Attendance logs have been saved to your device.");
+  const handleExport = async () => {
+    if (!serverUrl || !token) {
+      Alert.alert("Error", "Please setup server and login first");
+      return;
+    }
+    if (exportLoading) return;
+
+    setExportLoading(true);
+    try {
+      const url = `${serverUrl}/api/v1/mobile/attendance/export/csv?search=${encodeURIComponent(searchQuery)}`;
+      const response = await fetch(url, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Export failed: ${response.status}`);
+      }
+
+      const csvContent = await response.text();
+      const fileName = `attendance_${Date.now()}.csv`;
+      const uri = LegacyFileSystem.cacheDirectory + fileName;
+      await LegacyFileSystem.writeAsStringAsync(uri, csvContent);
+
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(uri, {
+          mimeType: "text/csv",
+          dialogTitle: "Save Attendance CSV",
+        });
+      } else {
+        Alert.alert("Error", "Sharing not available on this device");
+      }
+      Alert.alert("Success", "CSV exported successfully!");
+    } catch (err: any) {
+      console.error("Export error:", err);
+      Alert.alert("Export Failed", err.message || "Unknown error");
+    } finally {
+      setExportLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -212,17 +254,25 @@ export default function AttendanceScreen() {
 
         <TouchableOpacity
           onPress={handleExport}
+          disabled={exportLoading || !serverUrl || !token}
           style={[
             styles.whiteControl,
             styles.shadow,
-            { backgroundColor: surfaceColor },
+            {
+              backgroundColor: surfaceColor,
+              opacity: exportLoading || !serverUrl || !token ? 0.5 : 1,
+            },
           ]}
         >
-          <IconSymbol
-            name="square.and.arrow.up"
-            size={18}
-            color={colors.text}
-          />
+          {exportLoading ? (
+            <ActivityIndicator size="small" color={colors.text} />
+          ) : (
+            <IconSymbol
+              name="square.and.arrow.up"
+              size={18}
+              color={colors.text}
+            />
+          )}
         </TouchableOpacity>
       </View>
 
