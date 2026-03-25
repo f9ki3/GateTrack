@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import {
   FlatList,
   RefreshControl,
@@ -8,7 +8,9 @@ import {
   Alert,
   TouchableOpacity,
   Platform,
+  ActivityIndicator,
 } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { IconSymbol } from "@/components/ui/icon-symbol";
@@ -16,7 +18,7 @@ import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { AttendanceRecord, mockAttendance } from "@/constants/mockAttendance";
+import { AttendanceRecord } from "@/constants/mockAttendance";
 
 export default function AttendanceScreen() {
   const insets = useSafeAreaInsets();
@@ -35,25 +37,116 @@ export default function AttendanceScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const itemsPerPage = 10;
 
+  const [serverUrl, setServerUrl] = useState("");
+  const [token, setToken] = useState("");
+  const [attendanceData, setAttendanceData] = useState<AttendanceRecord[]>([]);
+  const [totalPagesState, setTotalPagesState] = useState(1);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const loadConfig = async () => {
+    try {
+      const configJson = await AsyncStorage.getItem("serverConfig");
+      if (configJson) {
+        const config = JSON.parse(configJson);
+        setServerUrl(config.serverUrl || "");
+      }
+      const tok = await AsyncStorage.getItem("@gatetrack:token");
+      setToken(tok || "");
+    } catch (e) {
+      console.error("Config load error:", e);
+    }
+  };
+
+  const fetchAttendance = async (currentPage: number) => {
+    if (!serverUrl || !token) return;
+    setLoading(true);
+    setError("");
+    await new Promise((resolve) => setTimeout(resolve, 3000)); // 3s min loading
+    try {
+      const response = await fetch(
+        `${serverUrl}/api/v1/mobile/attendance?page=${currentPage}&per_page=${itemsPerPage}`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+      const data = await response.json();
+      if (!data.success) {
+        throw new Error(data.message || "API failed");
+      }
+      const mapped = data.records.map(
+        (rec: any): AttendanceRecord => ({
+          id: rec.id.toString(),
+          date: rec.date,
+          timeIn: rec.time_in
+            ? new Date(rec.time_in).toLocaleTimeString("en-US", {
+                hour: "numeric",
+                minute: "2-digit",
+                hour12: true,
+              })
+            : "",
+          timeOut: rec.time_out
+            ? new Date(rec.time_out).toLocaleTimeString("en-US", {
+                hour: "numeric",
+                minute: "2-digit",
+                hour12: true,
+              })
+            : "",
+          time_in: rec.time_in,
+          time_out: rec.time_out,
+          duration: rec.duration,
+          email: rec.email,
+          first_name: rec.first_name,
+          last_name: rec.last_name,
+          username: rec.username,
+          role: rec.role,
+        }),
+      );
+      setAttendanceData(mapped);
+      setTotalPagesState(data.total_pages || 1);
+    } catch (err: any) {
+      setError(err.message || "Fetch error");
+      console.error("Attendance fetch error:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleExport = () => {
     Alert.alert("Export", "Attendance logs have been saved to your device.");
   };
 
-  const onRefresh = useCallback(() => {
-    setRefreshing(true);
-    setTimeout(() => setRefreshing(false), 1000);
+  useEffect(() => {
+    loadConfig();
   }, []);
 
-  const filteredData = mockAttendance.filter((record) =>
-    record.date.includes(searchQuery),
+  useEffect(() => {
+    if (serverUrl && token) {
+      fetchAttendance(page);
+    }
+  }, [serverUrl, token, page]);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await fetchAttendance(page);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [page, serverUrl, token]);
+
+  const filteredData = attendanceData.filter((record) =>
+    record.date.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
-  const startIndex = (page - 1) * itemsPerPage;
-  const paginatedData = filteredData.slice(
-    startIndex,
-    startIndex + itemsPerPage,
-  );
-  const totalPages = Math.ceil(filteredData.length / itemsPerPage);
+  const paginatedData = filteredData; // Filter current page data
+  const totalPages = totalPagesState;
 
   const TableHeader = () => (
     <View
@@ -151,7 +244,7 @@ export default function AttendanceScreen() {
             style={[styles.searchInput, { color: colors.text }]}
             placeholder="Search dates..."
             value={searchQuery}
-            onChangeText={(text) => {
+            onChangeText={async (text) => {
               setSearchQuery(text);
               setPage(1);
             }}
@@ -207,30 +300,103 @@ export default function AttendanceScreen() {
       </View>
 
       {/* Table Section */}
-      <View
-        style={[
-          styles.tableWrapper,
-          styles.shadow,
-          { borderColor: borderColor },
-        ]}
-      >
-        <FlatList
-          data={paginatedData}
-          ListHeaderComponent={TableHeader}
-          stickyHeaderIndices={[0]}
-          renderItem={renderItem}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}
-          showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              tintColor={colors.tint}
+      {!serverUrl || !token ? (
+        <View
+          style={[
+            styles.tableWrapper,
+            styles.shadow,
+            { borderColor: borderColor },
+          ]}
+        >
+          <ThemedView style={styles.noDataContainer}>
+            <IconSymbol
+              name="person.2.slash"
+              size={48}
+              color={colors.textSecondary}
             />
-          }
-        />
-      </View>
+            <ThemedText style={styles.noDataText}>
+              Please complete login/server setup to view attendance
+            </ThemedText>
+          </ThemedView>
+        </View>
+      ) : loading ? (
+        <View
+          style={[
+            styles.tableWrapper,
+            styles.shadow,
+            { borderColor: borderColor },
+          ]}
+        >
+          <View
+            style={[
+              styles.loadingOverlay,
+              {
+                backgroundColor: isDark
+                  ? "rgba(28,28,30,0.95)"
+                  : "rgba(255,255,255,0.95)",
+              },
+            ]}
+          >
+            <ActivityIndicator size="large" color="#FFFFFF" />
+          </View>
+        </View>
+      ) : error ? (
+        <View
+          style={[
+            styles.tableWrapper,
+            styles.shadow,
+            { borderColor: borderColor },
+          ]}
+        >
+          <ThemedView style={styles.errorContainer}>
+            <IconSymbol name="xmark.circle" size={48} color="#EF4444" />
+            <ThemedText style={styles.errorText}>{error}</ThemedText>
+            <TouchableOpacity
+              style={styles.retryBtn}
+              onPress={() => fetchAttendance(page)}
+            >
+              <ThemedText style={styles.retryText}>Retry</ThemedText>
+            </TouchableOpacity>
+          </ThemedView>
+        </View>
+      ) : (
+        <View
+          style={[
+            styles.tableWrapper,
+            styles.shadow,
+            { borderColor: borderColor },
+          ]}
+        >
+          <FlatList
+            data={paginatedData}
+            ListHeaderComponent={TableHeader}
+            stickyHeaderIndices={[0]}
+            renderItem={renderItem}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}
+            showsVerticalScrollIndicator={false}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                tintColor={colors.tint}
+              />
+            }
+            ListEmptyComponent={
+              <ThemedView style={styles.emptyContainer}>
+                <IconSymbol
+                  name="clock"
+                  size={48}
+                  color={colors.textSecondary}
+                />
+                <ThemedText style={styles.emptyText}>
+                  No attendance records found
+                </ThemedText>
+              </ThemedView>
+            }
+          />
+        </View>
+      )}
     </ThemedView>
   );
 }
@@ -308,4 +474,70 @@ const styles = StyleSheet.create({
   col1: { flex: 1.3 },
   col2: { flex: 1, textAlign: "center" },
   col3: { flex: 1, textAlign: "right" },
+  shadow: {
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  noDataContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 40,
+    gap: 12,
+  },
+  noDataText: {
+    fontSize: 16,
+    textAlign: "center",
+    fontWeight: "500",
+    opacity: 0.7,
+  },
+  loadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(255,255,255,0.95)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 40,
+    gap: 16,
+  },
+  errorText: {
+    fontSize: 16,
+    textAlign: "center",
+    color: "#EF4444",
+    fontWeight: "600",
+  },
+  retryBtn: {
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+    backgroundColor: "#F3F4F6",
+    borderWidth: 1,
+    borderColor: "#D1D5DB",
+  },
+  retryText: {
+    fontWeight: "600",
+    fontSize: 15,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 40,
+    gap: 12,
+  },
+  emptyText: {
+    fontSize: 16,
+    textAlign: "center",
+    opacity: 0.7,
+  },
 });

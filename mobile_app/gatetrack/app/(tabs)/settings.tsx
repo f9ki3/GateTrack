@@ -19,7 +19,7 @@ import { ThemedView } from "@/components/themed-view";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 
-// --- Sub-components (outside to prevent keyboard focus bugs) ---
+// --- Sub-components ---
 
 const Input = ({
   label,
@@ -29,7 +29,7 @@ const Input = ({
   placeholder,
   colors,
   inputBgColor,
-}: any) => {
+}) => {
   const [hidden, setHidden] = useState(true);
 
   return (
@@ -77,7 +77,7 @@ const Section = ({
   isLoading,
   colors,
   colorScheme,
-}: any) => (
+}) => (
   <View style={styles.sectionContainer}>
     <ThemedText
       style={styles.sectionTitle}
@@ -127,7 +127,6 @@ export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
-  const primaryColor = colors.tint;
   const inputBgColor = colors.bgSecondary || "rgba(150, 150, 150, 0.1)";
 
   const [firstName, setFirstName] = useState("");
@@ -140,8 +139,8 @@ export default function SettingsScreen() {
   const [serverUrl, setServerUrl] = useState("http://localhost:5000");
   const [token, setToken] = useState("");
   const [userData, setUserData] = useState(null);
+
   const [isReady, setIsReady] = useState(false);
-  const [fetchIsLoading, setFetchIsLoading] = useState(false);
   const [profileLoading, setProfileLoading] = useState(false);
   const [passwordLoading, setPasswordLoading] = useState(false);
 
@@ -156,10 +155,10 @@ export default function SettingsScreen() {
         if (userJson) {
           const user = JSON.parse(userJson);
           setUserData(user);
-          if (user.first_name) setFirstName(user.first_name);
-          if (user.last_name) setLastName(user.last_name);
-          if (user.email) setEmail(user.email);
-          if (user.contact) setContact(user.contact);
+          setFirstName(user.first_name || "");
+          setLastName(user.last_name || "");
+          setEmail(user.email || "");
+          setContact(user.contact || "");
         }
         if (configJson) {
           const config = JSON.parse(configJson);
@@ -167,17 +166,17 @@ export default function SettingsScreen() {
         }
       } catch (error) {
         console.error("Failed to load auth data:", error);
+      } finally {
+        setIsReady(true);
       }
     };
 
     loadAuthData();
-    setIsReady(true);
-  }, [token, serverUrl]);
+  }, []);
 
   useEffect(() => {
     const fetchProfile = async () => {
       if (!token || !serverUrl) return;
-      setFetchIsLoading(true);
       try {
         const response = await fetch(`${serverUrl}/api/v1/mobile/profile`, {
           method: "GET",
@@ -192,28 +191,22 @@ export default function SettingsScreen() {
           setEmail(profile.user.email || "");
           setContact(profile.user.contact || "");
           setUserData(profile.user);
-        } else {
-          Alert.alert("Error", "Failed to load profile");
         }
       } catch (error) {
         console.error("Profile fetch error:", error);
-        Alert.alert("Error", "Network error loading profile");
-      } finally {
-        setFetchIsLoading(false);
-        setIsReady(true);
       }
     };
 
-    if (token && serverUrl) {
+    if (isReady && token && serverUrl) {
       fetchProfile();
     }
-  }, [token, serverUrl]);
+  }, [isReady, token, serverUrl]);
 
   const saveProfile = async () => {
-    const trimmedFirst = firstName.trim();
-    const trimmedLast = lastName.trim();
-    const trimmedEmail = email.trim();
-    const trimmedContact = contact.trim();
+    const trimmedFirst = (firstName || "").trim();
+    const trimmedLast = (lastName || "").trim();
+    const trimmedEmail = (email || "").trim();
+    const trimmedContact = (contact || "").trim();
 
     if (!trimmedFirst || !trimmedLast || !trimmedEmail) {
       Alert.alert("Error", "First name, last name, and email are required");
@@ -221,7 +214,7 @@ export default function SettingsScreen() {
     }
 
     if (!trimmedEmail.includes("@") || !trimmedEmail.includes(".")) {
-      Alert.alert("Error", "Email must contain @ and .");
+      Alert.alert("Error", "Please enter a valid email address");
       return;
     }
 
@@ -230,7 +223,7 @@ export default function SettingsScreen() {
       trimmedContact.length > 0 &&
       trimmedContact.length < 5
     ) {
-      Alert.alert("Error", "Contact too short (min 5 chars)");
+      Alert.alert("Error", "Contact number is too short (min 5 characters)");
       return;
     }
 
@@ -269,7 +262,7 @@ export default function SettingsScreen() {
           errorMessage = `${firstErrorKey}: ${errorData.errors[firstErrorKey][0]}`;
         } else if (Array.isArray(errorData.detail)) {
           errorMessage = errorData.detail
-            .map((err: any) => `${err.loc[err.loc.length - 1]}: ${err.msg}`)
+            .map((err) => `${err.loc[err.loc.length - 1]}: ${err.msg}`)
             .join("\n");
         } else {
           errorMessage =
@@ -319,7 +312,7 @@ export default function SettingsScreen() {
       });
       const data = await response.json();
       if (response.ok && data.success) {
-        Alert.alert("Success", "Password changed");
+        Alert.alert("Success", "Password changed successfully");
         setOldPassword("");
         setNewPassword("");
         setConfirmPassword("");
@@ -330,14 +323,14 @@ export default function SettingsScreen() {
       }
     } catch (error) {
       console.error(error);
-      Alert.alert("Error", "Network error");
+      Alert.alert("Error", "Network error. Could not reach server.");
     } finally {
       setPasswordLoading(false);
     }
   };
 
   const saveServer = async () => {
-    if (!serverUrl.trim()) {
+    if (!(serverUrl || "").trim()) {
       Alert.alert("Error", "Server URL is required");
       return;
     }
@@ -345,7 +338,7 @@ export default function SettingsScreen() {
       await AsyncStorage.setItem("serverConfig", JSON.stringify({ serverUrl }));
       Alert.alert("Server Saved", `Updated to: ${serverUrl}`);
     } catch (error) {
-      Alert.alert("Error", "Could not save server config.");
+      Alert.alert("Error", "Could not save server config locally.");
     }
   };
 
@@ -353,9 +346,17 @@ export default function SettingsScreen() {
     return (
       <ThemedView style={styles.container}>
         <View
-          style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
+          style={{
+            flex: 1,
+            justifyContent: "center",
+            alignItems: "center",
+            backgroundColor:
+              colorScheme === "dark"
+                ? "rgba(28,28,30,0.95)"
+                : "rgba(255,255,255,0.95)",
+          }}
         >
-          <ActivityIndicator size="large" color={primaryColor} />
+          <ActivityIndicator size="large" color={colors.text} />
         </View>
       </ThemedView>
     );
@@ -377,143 +378,138 @@ export default function SettingsScreen() {
           <ThemedText style={styles.title}>Settings</ThemedText>
         </View>
 
-        {fetchIsLoading && (
-          <View style={styles.loadingOverlay}>
-            <ActivityIndicator size="large" color={colors.tint} />
-          </View>
-        )}
-
-        <ScrollView
-          contentContainerStyle={styles.content}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-        >
-          <Section
-            title="Profile"
-            onSave={saveProfile}
-            isLoading={profileLoading}
-            colors={colors}
-            colorScheme={colorScheme}
+        <View style={{ flex: 1 }}>
+          <ScrollView
+            contentContainerStyle={styles.content}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
           >
-            <Input
-              label="First Name"
-              value={firstName}
-              onChangeText={setFirstName}
+            <Section
+              title="Profile"
+              onSave={saveProfile}
+              isLoading={profileLoading}
               colors={colors}
-              inputBgColor={inputBgColor}
-            />
-            <Input
-              label="Last Name"
-              value={lastName}
-              onChangeText={setLastName}
-              colors={colors}
-              inputBgColor={inputBgColor}
-            />
-            <Input
-              label="Email Address"
-              value={email}
-              onChangeText={setEmail}
-              colors={colors}
-              inputBgColor={inputBgColor}
-            />
-            <Input
-              label="Contact"
-              value={contact}
-              onChangeText={setContact}
-              colors={colors}
-              inputBgColor={inputBgColor}
-            />
-          </Section>
+              colorScheme={colorScheme}
+            >
+              <Input
+                label="First Name"
+                value={firstName}
+                onChangeText={setFirstName}
+                colors={colors}
+                inputBgColor={inputBgColor}
+              />
+              <Input
+                label="Last Name"
+                value={lastName}
+                onChangeText={setLastName}
+                colors={colors}
+                inputBgColor={inputBgColor}
+              />
+              <Input
+                label="Email Address"
+                value={email}
+                onChangeText={setEmail}
+                colors={colors}
+                inputBgColor={inputBgColor}
+              />
+              <Input
+                label="Contact"
+                value={contact}
+                onChangeText={setContact}
+                colors={colors}
+                inputBgColor={inputBgColor}
+              />
+            </Section>
 
-          <Section
-            title="Security"
-            onSave={savePassword}
-            isLoading={passwordLoading}
-            colors={colors}
-            colorScheme={colorScheme}
-          >
-            <Input
-              label="Current Password"
-              value={oldPassword}
-              onChangeText={setOldPassword}
-              isPassword
+            <Section
+              title="Security"
+              onSave={savePassword}
+              isLoading={passwordLoading}
               colors={colors}
-              inputBgColor={inputBgColor}
-            />
-            <Input
-              label="New Password"
-              value={newPassword}
-              onChangeText={setNewPassword}
-              isPassword
-              colors={colors}
-              inputBgColor={inputBgColor}
-            />
-            <Input
-              label="Confirm Password"
-              value={confirmPassword}
-              onChangeText={setConfirmPassword}
-              isPassword
-              colors={colors}
-              inputBgColor={inputBgColor}
-            />
-          </Section>
+              colorScheme={colorScheme}
+            >
+              <Input
+                label="Current Password"
+                value={oldPassword}
+                onChangeText={setOldPassword}
+                isPassword
+                colors={colors}
+                inputBgColor={inputBgColor}
+              />
+              <Input
+                label="New Password"
+                value={newPassword}
+                onChangeText={setNewPassword}
+                isPassword
+                colors={colors}
+                inputBgColor={inputBgColor}
+              />
+              <Input
+                label="Confirm Password"
+                value={confirmPassword}
+                onChangeText={setConfirmPassword}
+                isPassword
+                colors={colors}
+                inputBgColor={inputBgColor}
+              />
+            </Section>
 
-          <Section
-            title="Network"
-            onSave={saveServer}
-            colors={colors}
-            colorScheme={colorScheme}
-          >
-            <Input
-              label="Server URL"
-              value={serverUrl}
-              onChangeText={setServerUrl}
+            <Section
+              title="Network"
+              onSave={saveServer}
               colors={colors}
-              inputBgColor={inputBgColor}
-            />
-          </Section>
-        </ScrollView>
+              colorScheme={colorScheme}
+            >
+              <Input
+                label="Server URL"
+                value={serverUrl}
+                onChangeText={setServerUrl}
+                colors={colors}
+                inputBgColor={inputBgColor}
+              />
+            </Section>
 
-        <TouchableOpacity
-          style={[
-            styles.sectionSaveBtn,
-            {
-              backgroundColor: "#EF4444",
-              marginTop: 24,
-              marginHorizontal: 20,
-              marginBottom: 20,
-            },
-          ]}
-          onPress={async () => {
-            Alert.alert("Logout", "Clear token/user and go to login?", [
-              { text: "Cancel", style: "cancel" },
-              {
-                text: "Logout",
-                style: "destructive",
-                onPress: async () => {
-                  try {
-                    await AsyncStorage.multiRemove([
-                      "@gatetrack:token",
-                      "@gatetrack:user",
-                    ]);
-                    router.replace("/login");
-                  } catch (error) {
-                    Alert.alert("Error", "Logout failed");
-                  }
+            <TouchableOpacity
+              style={[
+                styles.sectionSaveBtn,
+                {
+                  backgroundColor: "#EF4444",
+                  marginTop: 24,
+                  marginBottom: 20,
                 },
-              },
-            ]);
-          }}
-          activeOpacity={0.8}
-        >
-          <ThemedText
-            lightColor="#ffffff"
-            darkColor="#ffffff"
-            style={styles.sectionSaveText}
-          >
-            Logout
-          </ThemedText>
-        </TouchableOpacity>
+              ]}
+              onPress={() => {
+                Alert.alert("Logout", "Clear token/user and go to login?", [
+                  { text: "Cancel", style: "cancel" },
+                  {
+                    text: "Logout",
+                    style: "destructive",
+                    onPress: async () => {
+                      try {
+                        await AsyncStorage.multiRemove([
+                          "@gatetrack:token",
+                          "@gatetrack:user",
+                        ]);
+                        router.replace("/login");
+                      } catch (error) {
+                        Alert.alert("Error", "Logout failed");
+                      }
+                    },
+                  },
+                ]);
+              }}
+              activeOpacity={0.8}
+            >
+              <ThemedText
+                lightColor="#ffffff"
+                darkColor="#ffffff"
+                style={styles.sectionSaveText}
+              >
+                Logout
+              </ThemedText>
+            </TouchableOpacity>
+          </ScrollView>
+        </View>
       </KeyboardAvoidingView>
     </ThemedView>
   );
@@ -559,7 +555,7 @@ const styles = StyleSheet.create({
   inputWrapper: {
     flexDirection: "row",
     alignItems: "center",
-    borderRadius: 12, // Little round, more square
+    borderRadius: 12,
     paddingHorizontal: 14,
     height: 50,
   },
@@ -578,43 +574,5 @@ const styles = StyleSheet.create({
   sectionSaveText: {
     fontSize: 15,
     fontWeight: "700",
-  },
-  userInfo: {
-    fontSize: 14,
-    opacity: 0.7,
-    marginTop: 4,
-    paddingHorizontal: 14,
-  },
-  noToken: {
-    textAlign: "center",
-    opacity: 0.5,
-    fontStyle: "italic",
-    padding: 20,
-  },
-  authSection: {
-    marginBottom: 32,
-  },
-  authSectionTitle: {
-    fontSize: 12,
-    fontWeight: "700",
-    textTransform: "uppercase",
-    letterSpacing: 1,
-    marginBottom: 12,
-    opacity: 0.6,
-  },
-  authInputWrapper: {
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-  },
-  loadingOverlay: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: "rgba(255,255,255,0.9)",
-    justifyContent: "center",
-    alignItems: "center",
-    zIndex: 1000,
   },
 });

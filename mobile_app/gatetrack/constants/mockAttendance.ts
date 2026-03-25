@@ -1,8 +1,17 @@
 export interface AttendanceRecord {
-  id: string; // Internal key for React FlatList
+  id: string;
   date: string;
   timeIn: string;
   timeOut: string;
+  // Real API optional fields
+  time_in?: string;
+  time_out?: string;
+  duration?: string;
+  email?: string;
+  first_name?: string;
+  last_name?: string;
+  username?: string;
+  role?: string;
 }
 
 export const mockAttendance: AttendanceRecord[] = [
