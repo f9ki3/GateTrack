@@ -165,14 +165,6 @@ def dashboard():
     
 
     # Laboratory status
-    from database_utils import get_today_attendance_count, get_teachers_currently_present
-    teachers_present = get_teachers_currently_present()
-lab_status = 'Available' if teachers_present == 0 else 'Not Available'
-
-    
-    # Get all users (for admin/teacher view)
-
-    all_users = get_all_users()
     recent_users = sorted(all_users, key=lambda u: u['created_at'] or '1900-01-01', reverse=True)[:10]
     
     return render_template(
