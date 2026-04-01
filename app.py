@@ -167,7 +167,7 @@ def dashboard():
     # Laboratory status
     from database_utils import get_today_attendance_count, get_teachers_currently_present
     teachers_present = get_teachers_currently_present()
-    lab_status = 'Available' if teachers_present > 0 else 'Not Available'
+lab_status = 'Available' if teachers_present == 0 else 'Not Available'
 
     
     # Get all users (for admin/teacher view)
