@@ -623,10 +623,64 @@ def api_check_users():
             'message': str(e)
         }), 500
 
+
 @app.route('/api/attendance', methods=['POST'])
 def api_attendance():
     try:
         data = request.get_json(silent=True) or {}
+        rfid = str(data.get('rfid', '')).strip().upper()
+        if not rfid:
+            return jsonify({'status': 'error', 'message': 'Missing RFID parameter'}), 400
+
+        user = get_user_by_rfid(rfid)
+        if not user:
+            return jsonify({'status': 'denied', 'message': 'Invalid RFID - User not found'}), 404
+
+        attendance = get_today_attendance(user['id'])
+        now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+        # If no record for today OR no time_in => Time In
+        if (not attendance) or (not attendance['time_in']):
+            log_attendance(user['id'], time_in=now)
+            return jsonify({
+                'status': 'success',
+                'message': 'Time In Recorded',
+                'type': 'time_in',
+                'time': now,
+                'user': {'id': user['id'], 'email': user['email'], 'role': user['role']}
+            }), 200
+
+        # If time_in exists but time_out is NULL => Time Out
+        if not attendance['time_out']:
+            log_attendance(user['id'], time_out=now)
+            return jsonify({
+                'status': 'success',
+                'message': 'Time Out Recorded',
+                'type': 'time_out',
+                'time': now,
+                'time_in': attendance['time_in'],
+                'user': {'id': user['id'], 'email': user['email'], 'role': user['role']}
+            }), 200
+
+        # If both exist already today => treat as success but do not update
+        return jsonify({
+            'status': 'success',
+            'message': 'Already logged for today',
+            'type': 'already_logged',
+            'time_in': attendance['time_in'],
+            'time_out': attendance['time_out'],
+            'user': {'id': user['id'], 'email': user['email'], 'role': user['role']}
+        }), 200
+
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+
+@app.route('/api/attendance', methods=['POST'])
+def api_attendance_legacy():
+    try:
+        data = request.get_json(silent=True) or {}
+
 
         mode = int(data.get('mode', 2))
 

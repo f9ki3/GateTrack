@@ -1,3 +1,4 @@
+
 #include <SPI.h>
 #include <MFRC522.h>
 #include <Wire.h>
@@ -587,14 +588,10 @@ String sendAttendance(String rfidTag, int mode, String& outStatus, String& outMe
   WiFiClient client;
   HTTPClient http;
 
+// RFID-only endpoint (auto time-in / time-out)
   String url = "http://" + savedServerIP + ":" + savedServerPort + "/api/attendance";
-  String payload = "{\"rfid\":\"" + rfidTag + "\",\"mode\":" + String(mode) + "}";
-
-  // Mode 4 uses check_users endpoint (no mode parameter)
-  if (mode == 4) {
-    url = "http://" + savedServerIP + ":" + savedServerPort + "/api/check_users";
-    payload = "{\"rfid\":\"" + rfidTag + "\"}";
-  }
+  // IMPORTANT: send only RFID (no mode)
+  String payload = "{\"rfid\":\"" + rfidTag + "\"}";
 
   Serial.println(">>> Sending to: " + url);
   Serial.println(">>> Payload: " + payload);
