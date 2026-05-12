@@ -639,8 +639,42 @@ def api_attendance():
         attendance = get_today_attendance(user['id'])
         now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
+        # Prevent another user from time-in if someone is inside
+        # (meaning there exists any attendance record for today with time_in set and time_out NULL)
+        conn = get_connection()
+        cursor = conn.cursor()
+        today = date.today().strftime('%Y-%m-%d')
+        cursor.execute('''
+            SELECT a.user_id
+            FROM attendance a
+            WHERE date(a.created_at) = ?
+              AND a.time_in IS NOT NULL
+              AND a.time_out IS NULL
+            ORDER BY a.created_at DESC
+            LIMIT 1
+        ''', (today,))
+        inside_row = cursor.fetchone()
+        conn.close()
+
+        someone_inside_user_id = inside_row['user_id'] if inside_row else None
+        someone_inside = someone_inside_user_id is not None and someone_inside_user_id != user['id']
+
         # If no record for today OR no time_in => Time In
         if (not attendance) or (not attendance['time_in']):
+            if someone_inside:
+                inside_user = get_user_by_id(someone_inside_user_id)
+                return jsonify({
+                    'status': 'success',
+                    'message': 'Someone is already inside. Please wait until they time out.',
+                    'type': 'someone_inside',
+                    'user': {'id': user['id'], 'email': user['email'], 'role': user['role']},
+                    'inside_user': {
+                        'id': inside_user['id'],
+                        'email': inside_user['email'],
+                        'role': inside_user['role']
+                    } if inside_user else None
+                }), 200
+
             log_attendance(user['id'], time_in=now)
             return jsonify({
                 'status': 'success',
@@ -662,6 +696,7 @@ def api_attendance():
                 'user': {'id': user['id'], 'email': user['email'], 'role': user['role']}
             }), 200
 
+
         # If both exist already today => treat as success but do not update
         return jsonify({
             'status': 'success',
@@ -676,137 +711,137 @@ def api_attendance():
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
 
-@app.route('/api/attendance', methods=['POST'])
-def api_attendance_legacy():
-    try:
-        data = request.get_json(silent=True) or {}
+# @app.route('/api/attendance', methods=['POST'])
+# def api_attendance_legacy():
+#     try:
+#         data = request.get_json(silent=True) or {}
 
 
-        mode = int(data.get('mode', 2))
+#         mode = int(data.get('mode', 2))
 
-        if mode not in [1, 2, 3]:
-            return jsonify({
-                'status': 'error',
-                'message': 'Invalid mode. Use 1, 2, or 3'
-            }), 400
+#         if mode not in [1, 2, 3]:
+#             return jsonify({
+#                 'status': 'error',
+#                 'message': 'Invalid mode. Use 1, 2, or 3'
+#             }), 400
 
-        rfid = str(data.get('rfid', '')).strip().upper()
-        if not rfid:
-            return jsonify({
-                'status': 'error',
-                'message': 'Missing RFID parameter'
-            }), 400
+#         rfid = str(data.get('rfid', '')).strip().upper()
+#         if not rfid:
+#             return jsonify({
+#                 'status': 'error',
+#                 'message': 'Missing RFID parameter'
+#             }), 400
 
-        user = get_user_by_rfid(rfid)
-        if not user:
-            return jsonify({
-                'status': 'denied',
-                'message': 'Invalid RFID - User not found',
-                'mode': mode
-            }), 404
+#         user = get_user_by_rfid(rfid)
+#         if not user:
+#             return jsonify({
+#                 'status': 'denied',
+#                 'message': 'Invalid RFID - User not found',
+#                 'mode': mode
+#             }), 404
 
-        attendance = get_today_attendance(user['id'])
-        now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+#         attendance = get_today_attendance(user['id'])
+#         now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
-        if mode == 1:
-            return jsonify({
-                'status': 'success',
-                'message': 'Door Access Granted',
-                'user': {
-                    'id': user['id'],
-                    'email': user['email'],
-                    'role': user['role']
-                },
-                'type': 'door_access',
-                'mode': 1,
-                'door': 'toggle',
-                'light': 'no_change',
-                'time': now
-            }), 200
+#         if mode == 1:
+#             return jsonify({
+#                 'status': 'success',
+#                 'message': 'Door Access Granted',
+#                 'user': {
+#                     'id': user['id'],
+#                     'email': user['email'],
+#                     'role': user['role']
+#                 },
+#                 'type': 'door_access',
+#                 'mode': 1,
+#                 'door': 'toggle',
+#                 'light': 'no_change',
+#                 'time': now
+#             }), 200
 
-        elif mode == 2:
-            if attendance and attendance['time_in']:
-                return jsonify({
-                    'status': 'success',
-                    'message': 'Already timed in today',
-                    'user': {
-                        'id': user['id'],
-                        'email': user['email'],
-                        'role': user['role']
-                    },
-                    'type': 'already_logged',
-                    'mode': 2,
-                    'door': 'open',
-                    'light': 'on',
-                    'time_in': attendance['time_in'],
-                    'time_out': attendance['time_out']
-                }), 200
+#         elif mode == 2:
+#             if attendance and attendance['time_in']:
+#                 return jsonify({
+#                     'status': 'success',
+#                     'message': 'Already timed in today',
+#                     'user': {
+#                         'id': user['id'],
+#                         'email': user['email'],
+#                         'role': user['role']
+#                     },
+#                     'type': 'already_logged',
+#                     'mode': 2,
+#                     'door': 'open',
+#                     'light': 'on',
+#                     'time_in': attendance['time_in'],
+#                     'time_out': attendance['time_out']
+#                 }), 200
 
-            log_attendance(user['id'], time_in=now)
+#             log_attendance(user['id'], time_in=now)
 
-            return jsonify({
-                'status': 'success',
-                'message': 'Time In Recorded',
-                'user': {
-                    'id': user['id'],
-                    'email': user['email'],
-                    'role': user['role']
-                },
-                'type': 'time_in',
-                'mode': 2,
-                'door': 'open',
-                'light': 'on',
-                'time': now
-            }), 200
+#             return jsonify({
+#                 'status': 'success',
+#                 'message': 'Time In Recorded',
+#                 'user': {
+#                     'id': user['id'],
+#                     'email': user['email'],
+#                     'role': user['role']
+#                 },
+#                 'type': 'time_in',
+#                 'mode': 2,
+#                 'door': 'open',
+#                 'light': 'on',
+#                 'time': now
+#             }), 200
 
-        elif mode == 3:
-            if not attendance or not attendance['time_in']:
-                return jsonify({
-                    'status': 'denied',
-                    'message': 'No Time In record found. Please time in first.',
-                    'mode': 3
-                }), 400
+#         elif mode == 3:
+#             if not attendance or not attendance['time_in']:
+#                 return jsonify({
+#                     'status': 'denied',
+#                     'message': 'No Time In record found. Please time in first.',
+#                     'mode': 3
+#                 }), 400
 
-            if attendance['time_out']:
-                return jsonify({
-                    'status': 'success',
-                    'message': 'Already logged out today',
-                    'user': {
-                        'id': user['id'],
-                        'email': user['email'],
-                        'role': user['role']
-                    },
-                    'type': 'already_logged',
-                    'mode': 3,
-                    'door': 'open',
-                    'light': 'on',
-                    'time_in': attendance['time_in'],
-                    'time_out': attendance['time_out']
-                }), 200
+#             if attendance['time_out']:
+#                 return jsonify({
+#                     'status': 'success',
+#                     'message': 'Already logged out today',
+#                     'user': {
+#                         'id': user['id'],
+#                         'email': user['email'],
+#                         'role': user['role']
+#                     },
+#                     'type': 'already_logged',
+#                     'mode': 3,
+#                     'door': 'open',
+#                     'light': 'on',
+#                     'time_in': attendance['time_in'],
+#                     'time_out': attendance['time_out']
+#                 }), 200
 
-            log_attendance(user['id'], time_out=now)
+#             log_attendance(user['id'], time_out=now)
 
-            return jsonify({
-                'status': 'success',
-                'message': 'Time Out Recorded',
-                'user': {
-                    'id': user['id'],
-                    'email': user['email'],
-                    'role': user['role']
-                },
-                'type': 'time_out',
-                'mode': 3,
-                'door': 'open',
-                'light': 'on',
-                'time_in': attendance['time_in'],
-                'time_out': now
-            }), 200
+#             return jsonify({
+#                 'status': 'success',
+#                 'message': 'Time Out Recorded',
+#                 'user': {
+#                     'id': user['id'],
+#                     'email': user['email'],
+#                     'role': user['role']
+#                 },
+#                 'type': 'time_out',
+#                 'mode': 3,
+#                 'door': 'open',
+#                 'light': 'on',
+#                 'time_in': attendance['time_in'],
+#                 'time_out': now
+#             }), 200
 
-    except Exception as e:
-        return jsonify({
-            'status': 'error',
-            'message': str(e)
-        }), 500
+#     except Exception as e:
+#         return jsonify({
+#             'status': 'error',
+#             'message': str(e)
+#         }), 500
 
 # ==================== EXPORT ROUTES ====================
 
